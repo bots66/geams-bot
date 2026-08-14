@@ -20,9 +20,8 @@ const client = new Client({
 // متغيرات عامة لإدارة حالة الألعاب والقنوات لمنع التكرار
 const activeGames = new Map();
 const activeChannels = new Set();
-const FATE_IMAGE_URL = "https://cdn.discordapp.com/attachments/1537200039276056717/1537730891084857344/Fate.png";
 
-// قائمة الأعلام (80 دولة)
+// قائمة الأعلام (شاملة لجميع الدول لتظهر عشوائياً واحدة تلو الأخرى)
 const flagsList = [
     { name: "مصر", url: "https://flagcdn.com/w320/eg.png" },
     { name: "المغرب", url: "https://flagcdn.com/w320/ma.png" },
@@ -169,7 +168,7 @@ client.on('messageCreate', async (message) => {
         return message.reply('تم إيقاف اللعبة الحالية بنجاح.');
     }
 
-    // لعبة الأعلام (ترسل رابط الصورة المطلوب أولاً، ثم إيمبد علم عشوائي)
+    // لعبة الأعلام (عشوائية بالكامل لكل دولة بدون تكرار علم معين، مع وقت 15 ثانية)
     if (content === 'أعلام' || content === 'اعلام') {
         if (activeGames.has(guildId) || activeChannels.has(channelId)) {
             return message.reply('توجد لعبة تنلعب الحين، استخدم "إيقاف" أولاً.');
@@ -177,13 +176,12 @@ client.on('messageCreate', async (message) => {
 
         activeChannels.add(channelId);
 
+        // اختيار علم عشوائي من القائمة الشاملة (سواء بريطانيا، إسبانيا، أو أي دولة)
         const randomFlag = flagsList[Math.floor(Math.random() * flagsList.length)];
-        
-        // إرسال رابط الصورة المحدد
-        await message.channel.send(FATE_IMAGE_URL);
 
-        // إرسال العلم العشوائي في Embed
+        // إرسال رسالة السؤال أو العلم العشوائي مباشرة
         const flagEmbed = new EmbedBuilder()
+            .setTitle("علم أي دولة ؟")
             .setImage(randomFlag.url)
             .setColor(0x2f3136);
 
