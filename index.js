@@ -20,6 +20,7 @@ const client = new Client({
 // متغيرات عامة لإدارة حالة الألعاب والقنوات لمنع التكرار
 const activeGames = new Map();
 const activeChannels = new Set();
+const FATE_IMAGE_URL = "https://cdn.discordapp.com/attachments/1537200039276056717/1537730891084857344/Fate.png";
 
 // قائمة الأعلام (80 دولة)
 const flagsList = [
@@ -162,12 +163,13 @@ client.on('messageCreate', async (message) => {
         }
         const game = activeGames.get(guildId);
         if (game.timeout) clearTimeout(game.timeout);
+        if (game.collector) game.collector.stop();
         activeGames.delete(guildId);
         activeChannels.delete(channelId);
         return message.reply('تم إيقاف اللعبة الحالية بنجاح.');
     }
 
-    // لعبة الأعلام (بدون علم صغير في الزاوية، صورة العلم مباشرة، وبدون تكرار)
+    // لعبة الأعلام (ترسل رابط الصورة المطلوب أولاً، ثم إيمبد علم عشوائي)
     if (content === 'أعلام' || content === 'اعلام') {
         if (activeGames.has(guildId) || activeChannels.has(channelId)) {
             return message.reply('توجد لعبة تنلعب الحين، استخدم "إيقاف" أولاً.');
@@ -176,17 +178,22 @@ client.on('messageCreate', async (message) => {
         activeChannels.add(channelId);
 
         const randomFlag = flagsList[Math.floor(Math.random() * flagsList.length)];
-        activeGames.set(guildId, { type: 'flag', answer: randomFlag.name });
+        
+        // إرسال رابط الصورة المحدد
+        await message.channel.send(FATE_IMAGE_URL);
 
-        // تم إزالة الـ setThumbnail نهائياً لكي لا يظهر أي علم صغير، وجعل العلم يظهر كصورة رئيسية وحدها
+        // إرسال العلم العشوائي في Embed
         const flagEmbed = new EmbedBuilder()
             .setImage(randomFlag.url)
             .setColor(0x2f3136);
 
         await message.channel.send({ embeds: [flagEmbed] });
 
+        activeGames.set(guildId, { type: 'flag', answer: randomFlag.name });
+
         const filter = (m) => !m.author.bot;
         const collector = message.channel.createMessageCollector({ filter, time: 15000 });
+        activeGames.get(guildId).collector = collector;
 
         collector.on('collect', (m) => {
             if (normalizeText(m.content) === normalizeText(randomFlag.name)) {
@@ -228,6 +235,7 @@ client.on('messageCreate', async (message) => {
 
         const filter = (m) => !m.author.bot;
         const collector = message.channel.createMessageCollector({ filter, time: 15000 });
+        activeGames.get(guildId).collector = collector;
 
         collector.on('collect', (m) => {
             if (normalizeText(m.content) === normalizeText(randomWord)) {
