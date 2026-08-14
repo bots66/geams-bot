@@ -18,9 +18,9 @@ const client = new Client({
 });
 
 // متغيرات عامة لإدارة حالة الألعاب في السيرفرات
-const activeGames = new Map(); // guildId -> { type, timeout, data }
+const activeGames = new Map();
 
-// قائمة الأعلام مع أسمائها المقبولة (بدون همزات وبدون أل التعريف)
+// قائمة الأعلام مع أسمائها المقبولة
 const flagsList = [
     { name: "مصر", url: "https://flagcdn.com/w320/eg.png" },
     { name: "المغرب", url: "https://flagcdn.com/w320/ma.png" },
@@ -32,7 +32,7 @@ const flagsList = [
     { name: "سنغافورة", url: "https://flagcdn.com/w320/sg.png" }
 ];
 
-// قائمة كلمات لعبة أسرع (شاملة وموسعة بـ 300+ كلمة مختلفة)
+// قائمة كلمات لعبة أسرع
 const fastWords = [
     "تفاحة", "سفينة", "طائرة", "سيارة", "قلم", "كتاب", "حاسوب", "هاتف", "طاولة", "كرسي",
     "شباك", "باب", "شمس", "قمر", "نجمة", "سحاب", "مطر", "بحر", "نهر", "جبل",
@@ -59,7 +59,7 @@ const fastWords = [
     "جريش", "منسف", "كبسة", "صيادية", "مقاليب", "تكتوكة", "مفطح", "مطازيز", "حنيني", "تشريبة"
 ];
 
-// دالة لتنظيف النصوص (إزالة الهمزات وأل التعريف للمقارنة المرنة)
+// دالة لتنظيف النصوص
 function normalizeText(text) {
     if (!text) return "";
     return text
@@ -92,7 +92,7 @@ client.on('messageCreate', async (message) => {
         return message.reply('تم إيقاف اللعبة الحالية بنجاح.');
     }
 
-    // لعبة الأعلام (تم التعديل لتظهر كـ Embed بدون روابط وبصورة متغيرة)
+    // لعبة الأعلام (بدون كلام فوق الصورة وبصورة متغيرة نقية)
     if (content === 'أعلام' || content === 'اعلام') {
         if (activeGames.has(guildId)) {
             return message.reply('توجد لعبة تنلعب الحين، استخدم "إيقاف" أولاً.');
@@ -102,7 +102,6 @@ client.on('messageCreate', async (message) => {
         activeGames.set(guildId, { type: 'flag', answer: randomFlag.name });
 
         const flagEmbed = new EmbedBuilder()
-            .setTitle('ما هو علم هذه الدولة؟ (معك 15 ثانية)')
             .setImage(randomFlag.url)
             .setColor(0x2f3136);
 
@@ -129,7 +128,7 @@ client.on('messageCreate', async (message) => {
         });
     }
 
-    // لعبة أسرع (تدعم استقبال الصور والنصوص المرفقة تلقائياً)
+    // لعبة أسرع
     if (content === 'أسرع' || content === 'اسرع') {
         if (activeGames.has(guildId)) {
             return message.reply('فيه لعبة تنلعب الحين.');
@@ -319,7 +318,7 @@ client.on('messageCreate', async (message) => {
     }
 });
 
-// خادم الويب لمنصة Render (لمنع مشاكل البورت)
+// خادم الويب لمنصة Render
 const http = require('http');
 const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
