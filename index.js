@@ -21,7 +21,11 @@ const client = new Client({
 const activeGames = new Map();
 const activeChannels = new Set();
 
-// قائمة الأعلام (شاملة لجميع الدول لتظهر عشوائياً واحدة تلو الأخرى)
+// روابط الصور المطلوبة
+const FLAG_IMAGE_URL = "https://cdn.discordapp.com/attachments/1537200039276056717/1537730891084857344/Fate.png";
+const FAST_IMAGE_URL = "https://cdn.discordapp.com/attachments/1537200039276056717/1537740104926498896/Fate.png";
+
+// قائمة الأعلام (متغيرة لكل لعبة)
 const flagsList = [
     { name: "مصر", url: "https://flagcdn.com/w320/eg.png" },
     { name: "المغرب", url: "https://flagcdn.com/w320/ma.png" },
@@ -132,7 +136,7 @@ const fastWords = [
     "جريش", "منسف", "كبسة", "صيادية", "مقاليب", "تكتوكة", "مفطح", "مطازيز", "حنيني", "تشريبة"
 ];
 
-// دالة تنظيف النصوص لتسهيل الإجابة
+// دالة تنظيف النصوص لتسهيل الإجابة بدون همزات أو تاء مربوطة
 function normalizeText(text) {
     if (!text) return "";
     return text
@@ -161,14 +165,13 @@ client.on('messageCreate', async (message) => {
             return message.reply('لا توجد أي لعبة تعمل حالياً لإيقافها.');
         }
         const game = activeGames.get(guildId);
-        if (game.timeout) clearTimeout(game.timeout);
         if (game.collector) game.collector.stop();
         activeGames.delete(guildId);
         activeChannels.delete(channelId);
-        return message.reply('تم إيقاف اللعبة الحالية بنجاح.');
+        return message.reply('تم إيقاف اللعبة.');
     }
 
-    // لعبة الأعلام (عشوائية بالكامل لكل دولة بدون تكرار علم معين، مع وقت 15 ثانية)
+    // لعبة الأعلام
     if (content === 'أعلام' || content === 'اعلام') {
         if (activeGames.has(guildId) || activeChannels.has(channelId)) {
             return message.reply('توجد لعبة تنلعب الحين، استخدم "إيقاف" أولاً.');
@@ -176,13 +179,16 @@ client.on('messageCreate', async (message) => {
 
         activeChannels.add(channelId);
 
-        // اختيار علم عشوائي من القائمة الشاملة (سواء بريطانيا، إسبانيا، أو أي دولة)
+        // اختيار علم عشوائي من القائمة
         const randomFlag = flagsList[Math.floor(Math.random() * flagsList.length)];
 
-        // إرسال رسالة السؤال أو العلم العشوائي مباشرة
+        // إرسال رابط الصورة المطلوبة كرسالة أولى
+        await message.channel.send(FLAG_IMAGE_URL);
+
+        // إرسال إيمبد يكتب "علم أي دولة ؟" مع العلم المتغير في اليمين
         const flagEmbed = new EmbedBuilder()
             .setTitle("علم أي دولة ؟")
-            .setImage(randomFlag.url)
+            .setThumbnail(randomFlag.url)
             .setColor(0x2f3136);
 
         await message.channel.send({ embeds: [flagEmbed] });
@@ -200,7 +206,8 @@ client.on('messageCreate', async (message) => {
                 }
                 activeChannels.delete(channelId);
                 collector.stop('won');
-                m.reply(`الفائز: <@${m.author.id}>`);
+                // الفائز ومنشنه فقط بدون أي إضافات أو فواصل
+                m.channel.send(`<@${m.author.id}>`);
             }
         });
 
@@ -223,13 +230,11 @@ client.on('messageCreate', async (message) => {
         const randomWord = fastWords[Math.floor(Math.random() * fastWords.length)];
         activeGames.set(guildId, { type: 'fast', answer: randomWord });
 
-        const attachment = message.attachments.first();
-        if (attachment) {
-            const file = new AttachmentBuilder(attachment.url);
-            await message.channel.send({ content: `أسرع: **${randomWord}**`, files: [file] });
-        } else {
-            await message.channel.send({ content: `أسرع: **${randomWord}**` });
-        }
+        // إرسال رابط صورة أسرع المحددة
+        await message.channel.send(FAST_IMAGE_URL);
+
+        // إرسال الكلمة العشوائية من الـ 300 كلمة في النص
+        await message.channel.send(`أسرع: **${randomWord}**`);
 
         const filter = (m) => !m.author.bot;
         const collector = message.channel.createMessageCollector({ filter, time: 15000 });
@@ -242,7 +247,8 @@ client.on('messageCreate', async (message) => {
                 }
                 activeChannels.delete(channelId);
                 collector.stop('won');
-                m.reply(`الفائز: <@${m.author.id}>`);
+                // الفائز ومنشنه فقط بدون أي إضافات
+                m.channel.send(`<@${m.author.id}>`);
             }
         });
 
@@ -332,7 +338,7 @@ client.on('messageCreate', async (message) => {
                     activeChannels.delete(channelId);
 
                     return message.channel.send({
-                        content: `الفائز: <@${winnerUser.id}>\n${winnerUser.displayAvatarURL({ extension: 'png', size: 256 })}`
+                        content: `<@${winnerUser.id}>\n${winnerUser.displayAvatarURL({ extension: 'png', size: 256 })}`
                     });
                 }
 
@@ -403,7 +409,7 @@ client.on('messageCreate', async (message) => {
     if (content.startsWith('!فائز')) {
         const user = message.mentions.users.first();
         if (user) {
-            await message.channel.send(`الفائز: ${user}`);
+            await message.channel.send(`${user}`);
         } else {
             await message.channel.send("يرجى ذكر الفائز.");
         }
