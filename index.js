@@ -144,6 +144,17 @@ function normalizeText(text) {
         .replace(/ى/g, 'ي');
 }
 
+// دالة مسلّكة لقراءة الصور تتوافق مع جميع إصدارات Jimp
+async function readImage(url) {
+    if (typeof Jimp.read === 'function') {
+        return await Jimp.read(url);
+    } else if (Jimp.default && typeof Jimp.default.read === 'function') {
+        return await Jimp.default.read(url);
+    } else {
+        throw new Error("مكتبة Jimp لا تدعم الدالة read في هذا الإصدار.");
+    }
+}
+
 client.once('ready', () => {
     console.log(`تم تسجيل الدخول بنجاح باسم ${client.user.tag}`);
 });
@@ -175,9 +186,8 @@ client.on('messageCreate', async (message) => {
         const randomFlag = flagsList[Math.floor(Math.random() * flagsList.length)];
 
         try {
-            // تحميل الصور باستخدام Jimp مع تفعيل القراءة المباشرة من الروابط
-            const background = await Jimp.read(FLAG_BACKGROUND_URL);
-            const flagImage = await Jimp.read(randomFlag.url);
+            const background = await readImage(FLAG_BACKGROUND_URL);
+            const flagImage = await readImage(randomFlag.url);
 
             flagImage.resize(110, 65); 
             background.composite(flagImage, 305, 30);
