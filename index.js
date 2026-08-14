@@ -19,9 +19,11 @@ const client = new Client({
 const activeGames = new Map();
 const activeChannels = new Set();
 
+// رابط صورة الواجهة الجديدة للعبة الأعلام
+const FLAG_BACKGROUND_URL = "https://cdn.discordapp.com/attachments/1537200039276056717/1537747410166743070/67D54CDE-E683-4CDB-A249-7FA9D7C3C780.png";
 const FAST_IMAGE_URL = "https://cdn.discordapp.com/attachments/1537200039276056717/1537740104926498896/Fate.png";
 
-// قائمة الأعلام كاملة
+// قائمة الأعلام الكاملة
 const flagsList = [
     { name: "مصر", url: "https://flagcdn.com/w320/eg.png" },
     { name: "المغرب", url: "https://flagcdn.com/w320/ma.png" },
@@ -164,7 +166,7 @@ client.on('messageCreate', async (message) => {
         return message.reply('تم إيقاف اللعبة.');
     }
 
-    // لعبة الأعلام (العلم العشوائي يظهر في مكان الصورة الكبيرة وبدون أي علم فوق، مع النصوص المطلوبة)
+    // لعبة الأعلام (الصورة الجديدة كواجهة أساسية، والعلم العشوائي يظهر بجانبها تلقائياً مع النصوص)
     if (content === 'أعلام' || content === 'اعلام') {
         if (activeGames.has(guildId) || activeChannels.has(channelId)) {
             return message.reply('توجد لعبة تنلعب الحين، استخدم "إيقاف" أولاً.');
@@ -177,7 +179,8 @@ client.on('messageCreate', async (message) => {
         const flagEmbed = new EmbedBuilder()
             .setTitle("علم أي دولة ؟")
             .setDescription("⏳ لديك 15 ثانيه")
-            .setImage(randomFlag.url) // العلم العشوائي في المكان الكبير (مكان سنغافورة) ويتغير كل مرة
+            .setImage(FLAG_BACKGROUND_URL) // الخلفية الجديدة التي أرسلتها
+            .setThumbnail(randomFlag.url)    // العلم العشوائي يظهر تلقائياً في المكان المخصص بجانبها
             .setColor(0x2f3136);
 
         await message.channel.send({ embeds: [flagEmbed] });
