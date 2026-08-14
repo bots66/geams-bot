@@ -166,7 +166,7 @@ client.on('messageCreate', async (message) => {
         const randomFlag = flagsList[Math.floor(Math.random() * flagsList.length)];
 
         try {
-            const background = await readImage(FLAG_BACKGROUND_URL);
+            const background = await readImage('./background.png');
             const flagImage = await readImage(randomFlag.url);
 
             flagImage.resize(110, 65); 
