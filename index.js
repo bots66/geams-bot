@@ -166,7 +166,7 @@ client.on('messageCreate', async (message) => {
         const randomFlag = flagsList[Math.floor(Math.random() * flagsList.length)];
 
         try {
-            const background = await readImage('./background.png');
+            const background = await Jimp.read("https://i.imgur.com/67D54CDE-E683-4CDB-A249-7FA9D7C3C780.png");
             const flagImage = await readImage(randomFlag.url);
 
             flagImage.resize(110, 65); 
