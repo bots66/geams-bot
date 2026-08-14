@@ -17,11 +17,11 @@ const client = new Client({
     ]
 });
 
-// متغيرات عامة لإدارة حالة الألعاب والسيرفرات والقنوات لمنع التكرار جذرياً
+// متغيرات عامة لإدارة حالة الألعاب والقنوات لمنع التكرار
 const activeGames = new Map();
-const activeChannels = new Set(); // حماية جذرية لمنع إرسال الألعاب مرتين في نفس القناة
+const activeChannels = new Set();
 
-// قائمة الأعلام مع أسمائها المقبولة
+// قائمة الأعلام (80 دولة)
 const flagsList = [
     { name: "مصر", url: "https://flagcdn.com/w320/eg.png" },
     { name: "المغرب", url: "https://flagcdn.com/w320/ma.png" },
@@ -30,7 +30,79 @@ const flagsList = [
     { name: "فرنسا", url: "https://flagcdn.com/w320/fr.png" },
     { name: "المانيا", url: "https://flagcdn.com/w320/de.png" },
     { name: "اليابان", url: "https://flagcdn.com/w320/jp.png" },
-    { name: "سنغافورة", url: "https://flagcdn.com/w320/sg.png" }
+    { name: "سنغافورة", url: "https://flagcdn.com/w320/sg.png" },
+    { name: "الكويت", url: "https://flagcdn.com/w320/kw.png" },
+    { name: "قطر", url: "https://flagcdn.com/w320/qa.png" },
+    { name: "البحرين", url: "https://flagcdn.com/w320/bh.png" },
+    { name: "عمان", url: "https://flagcdn.com/w320/om.png" },
+    { name: "الاردن", url: "https://flagcdn.com/w320/jo.png" },
+    { name: "فلسطين", url: "https://flagcdn.com/w320/ps.png" },
+    { name: "لبنان", url: "https://flagcdn.com/w320/lb.png" },
+    { name: "سوريا", url: "https://flagcdn.com/w320/sy.png" },
+    { name: "العراق", url: "https://flagcdn.com/w320/iq.png" },
+    { name: "اليمن", url: "https://flagcdn.com/w320/ye.png" },
+    { name: "السودان", url: "https://flagcdn.com/w320/sd.png" },
+    { name: "ليبيا", url: "https://flagcdn.com/w320/ly.png" },
+    { name: "تونس", url: "https://flagcdn.com/w320/tn.png" },
+    { name: "الجزائر", url: "https://flagcdn.com/w320/dz.png" },
+    { name: "موريتانيا", url: "https://flagcdn.com/w320/mr.png" },
+    { name: "الصومال", url: "https://flagcdn.com/w320/so.png" },
+    { name: "جيبوتي", url: "https://flagcdn.com/w320/dj.png" },
+    { name: "جزر القمر", url: "https://flagcdn.com/w320/km.png" },
+    { name: "امريكا", url: "https://flagcdn.com/w320/us.png" },
+    { name: "بريطانيا", url: "https://flagcdn.com/w320/gb.png" },
+    { name: "كندا", url: "https://flagcdn.com/w320/ca.png" },
+    { name: "ايطاليا", url: "https://flagcdn.com/w320/it.png" },
+    { name: "اسبانيا", url: "https://flagcdn.com/w320/es.png" },
+    { name: "تركيا", url: "https://flagcdn.com/w320/tr.png" },
+    { name: "ايران", url: "https://flagcdn.com/w320/ir.png" },
+    { name: "الهند", url: "https://flagcdn.com/w320/in.png" },
+    { name: "باكستان", url: "https://flagcdn.com/w320/pk.png" },
+    { name: "الصين", url: "https://flagcdn.com/w320/cn.png" },
+    { name: "كوريا الجنوبية", url: "https://flagcdn.com/w320/kr.png" },
+    { name: "كوريا الشمالية", url: "https://flagcdn.com/w320/kp.png" },
+    { name: "اندونيسيا", url: "https://flagcdn.com/w320/id.png" },
+    { name: "ماليزيا", url: "https://flagcdn.com/w320/my.png" },
+    { name: "تايلاند", url: "https://flagcdn.com/w320/th.png" },
+    { name: "فيتنام", url: "https://flagcdn.com/w320/vn.png" },
+    { name: "الفلبين", url: "https://flagcdn.com/w320/ph.png" },
+    { name: "استراليا", url: "https://flagcdn.com/w320/au.png" },
+    { name: "نيوزيلندا", url: "https://flagcdn.com/w320/nz.png" },
+    { name: "البرازيل", url: "https://flagcdn.com/w320/br.png" },
+    { name: "الارجنتين", url: "https://flagcdn.com/w320/ar.png" },
+    { name: "المكسيك", url: "https://flagcdn.com/w320/mx.png" },
+    { name: "كولومبيا", url: "https://flagcdn.com/w320/co.png" },
+    { name: "تشيلي", url: "https://flagcdn.com/w320/cl.png" },
+    { name: "بيرو", url: "https://flagcdn.com/w320/pe.png" },
+    { name: "فنزويلا", url: "https://flagcdn.com/w320/ve.png" },
+    { name: "جنوب افريقيا", url: "https://flagcdn.com/w320/za.png" },
+    { name: "نيجيريا", url: "https://flagcdn.com/w320/ng.png" },
+    { name: "كينيا", url: "https://flagcdn.com/w320/ke.png" },
+    { name: "اثيوبيا", url: "https://flagcdn.com/w320/et.png" },
+    { name: "غانا", url: "https://flagcdn.com/w320/gh.png" },
+    { name: "السويد", url: "https://flagcdn.com/w320/se.png" },
+    { name: "النرويج", url: "https://flagcdn.com/w320/no.png" },
+    { name: "فنلندا", url: "https://flagcdn.com/w320/fi.png" },
+    { name: "الدنمارك", url: "https://flagcdn.com/w320/dk.png" },
+    { name: "ايسلندا", url: "https://flagcdn.com/w320/is.png" },
+    { name: "هولندا", url: "https://flagcdn.com/w320/nl.png" },
+    { name: "بلجيكا", url: "https://flagcdn.com/w320/be.png" },
+    { name: "سويسرا", url: "https://flagcdn.com/w320/ch.png" },
+    { name: "النمسا", url: "https://flagcdn.com/w320/at.png" },
+    { name: "اليونان", url: "https://flagcdn.com/w320/gr.png" },
+    { name: "البرتغال", url: "https://flagcdn.com/w320/pt.png" },
+    { name: "بولندا", url: "https://flagcdn.com/w320/pl.png" },
+    { name: "اوكرانيا", url: "https://flagcdn.com/w320/ua.png" },
+    { name: "روسيا", url: "https://flagcdn.com/w320/ru.png" },
+    { name: "التشيك", url: "https://flagcdn.com/w320/cz.png" },
+    { name: "المجر", url: "https://flagcdn.com/w320/hu.png" },
+    { name: "رومانيا", url: "https://flagcdn.com/w320/ro.png" },
+    { name: "بلغاريا", url: "https://flagcdn.com/w320/bg.png" },
+    { name: "كرواتيا", url: "https://flagcdn.com/w320/hr.png" },
+    { name: "صربيا", url: "https://flagcdn.com/w320/rs.png" },
+    { name: "ايرلندا", url: "https://flagcdn.com/w320/ie.png" },
+    { name: "كوبا", url: "https://flagcdn.com/w320/cu.png" },
+    { name: "بنما", url: "https://flagcdn.com/w320/pa.png" }
 ];
 
 // قائمة كلمات لعبة أسرع
@@ -60,7 +132,7 @@ const fastWords = [
     "جريش", "منسف", "كبسة", "صيادية", "مقاليب", "تكتوكة", "مفطح", "مطازيز", "حنيني", "تشريبة"
 ];
 
-// دالة تنظيف النصوص
+// دالة تنظيف النصوص لتسهيل الإجابة
 function normalizeText(text) {
     if (!text) return "";
     return text
@@ -95,7 +167,7 @@ client.on('messageCreate', async (message) => {
         return message.reply('تم إيقاف اللعبة الحالية بنجاح.');
     }
 
-    // لعبة الأعلام (مع منع التدبيل نهائياً وجعل الصورة مع العلم بالجانب الأيمن عبر الـ Thumbnail أو الشكل المطلوب)
+    // لعبة الأعلام (بدون علم صغير في الزاوية، صورة العلم مباشرة، وبدون تكرار)
     if (content === 'أعلام' || content === 'اعلام') {
         if (activeGames.has(guildId) || activeChannels.has(channelId)) {
             return message.reply('توجد لعبة تنلعب الحين، استخدم "إيقاف" أولاً.');
@@ -106,10 +178,9 @@ client.on('messageCreate', async (message) => {
         const randomFlag = flagsList[Math.floor(Math.random() * flagsList.length)];
         activeGames.set(guildId, { type: 'flag', answer: randomFlag.name });
 
-        // جعل العلم يظهر كصورة رئيسية أو مصغرة باليمين حسب الطلب والتصميم الاحترافي
+        // تم إزالة الـ setThumbnail نهائياً لكي لا يظهر أي علم صغير، وجعل العلم يظهر كصورة رئيسية وحدها
         const flagEmbed = new EmbedBuilder()
-            .setThumbnail(randomFlag.url) // جعل العلم يظهر على الجانب الأيمن داخل الإيمبد
-            .setImage('https://cdn.discordapp.com/attachments/1537200039276056717/1537730891084857344/Fate.png') // الصورة المطلوبة بالأساس
+            .setImage(randomFlag.url)
             .setColor(0x2f3136);
 
         await message.channel.send({ embeds: [flagEmbed] });
