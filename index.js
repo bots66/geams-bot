@@ -22,7 +22,8 @@ const activeGames = new Map();
 const activeChannels = new Set();
 
 // ضع هنا رابط الخلفية الصحيح والفعال لديك (تأكد أنه رابط مباشر ينتهي بـ .png أو .jpg)
-const FLAG_BACKGROUND_URL = "https://cdn.discordapp.com/attachments/1537200039276056717/1537747410166743070/67D54CDE-E683-4CDB-A249-7FA9D7C3C780.png";
+const FLAG_BACKGROUND_URL = "https://i.imgur.com/67D54CDE-E683-4CDB-A249-7FA9D7C3C780.png";
+
 const FAST_IMAGE_URL = "https://cdn.discordapp.com/attachments/1537200039276056717/1537740104926498896/Fate.png";
 
 const flagsList = [
