@@ -16,14 +16,12 @@ const client = new Client({
     ]
 });
 
-// متغيرات عامة لإدارة حالة الألعاب والقنوات لمنع التكرار
 const activeGames = new Map();
 const activeChannels = new Set();
 
-// رابط صورة الواجهة الأساسية للعبة أسرع
 const FAST_IMAGE_URL = "https://cdn.discordapp.com/attachments/1537200039276056717/1537740104926498896/Fate.png";
 
-// قائمة الأعلام (العلم العشوائي سيظهر في مكان الصورة الرئيسية الإيمبد مباشرة)
+// قائمة الأعلام كاملة
 const flagsList = [
     { name: "مصر", url: "https://flagcdn.com/w320/eg.png" },
     { name: "المغرب", url: "https://flagcdn.com/w320/ma.png" },
@@ -107,7 +105,6 @@ const flagsList = [
     { name: "سنغافورة", url: "https://flagcdn.com/w320/sg.png" }
 ];
 
-// قائمة كلمات لعبة أسرع المتغيرة (مثل: وزه، حزام، ذهبي... إلخ)
 const fastWords = [
     "ذهبي", "حزام", "تفاحة", "سفينة", "طائرة", "سيارة", "قلم", "كتاب", "حاسوب", "هاتف", "طاولة", "كرسي",
     "شباك", "باب", "شمس", "قمر", "نجمة", "سحاب", "مطر", "بحر", "نهر", "جبل",
@@ -134,7 +131,6 @@ const fastWords = [
     "منسف", "كبسة", "صيادية", "مقاليب", "تكتوكة", "مفطح", "مطازيز", "حنيني", "تشريبة", "وزه"
 ];
 
-// دالة تنظيف النصوص للمقارنة بدقة
 function normalizeText(text) {
     if (!text) return "";
     return text
@@ -157,7 +153,6 @@ client.on('messageCreate', async (message) => {
     const guildId = message.guild.id;
     const channelId = message.channel.id;
 
-    // أمر إيقاف اللعبة
     if (content === 'إيقاف') {
         if (!activeGames.has(guildId)) {
             return message.reply('لا توجد أي لعبة تعمل حالياً لإيقافها.');
@@ -169,7 +164,7 @@ client.on('messageCreate', async (message) => {
         return message.reply('تم إيقاف اللعبة.');
     }
 
-    // لعبة الأعلام (وضع العلم العشوائي مباشرة كمحتوى رئيسي للإيمبد بدلاً من سنغافورة وبدون أي صورة فوقها)
+    // لعبة الأعلام (العلم العشوائي يظهر في مكان الصورة الكبيرة وبدون أي علم فوق، مع النصوص المطلوبة)
     if (content === 'أعلام' || content === 'اعلام') {
         if (activeGames.has(guildId) || activeChannels.has(channelId)) {
             return message.reply('توجد لعبة تنلعب الحين، استخدم "إيقاف" أولاً.');
@@ -180,7 +175,9 @@ client.on('messageCreate', async (message) => {
         const randomFlag = flagsList[Math.floor(Math.random() * flagsList.length)];
 
         const flagEmbed = new EmbedBuilder()
-            .setImage(randomFlag.url) // العلم العشوائي يظهر في مكان الصورة الكبيرة مباشرة
+            .setTitle("علم أي دولة ؟")
+            .setDescription("⏳ لديك 15 ثانيه")
+            .setImage(randomFlag.url) // العلم العشوائي في المكان الكبير (مكان سنغافورة) ويتغير كل مرة
             .setColor(0x2f3136);
 
         await message.channel.send({ embeds: [flagEmbed] });
@@ -211,7 +208,7 @@ client.on('messageCreate', async (message) => {
         });
     }
 
-    // لعبة أسرع (الصورة الأساسية للعبة مع الكلمة المتغيرة في المنتصف بدل جريش)
+    // لعبة أسرع
     if (content === 'أسرع' || content === 'اسرع') {
         if (activeGames.has(guildId) || activeChannels.has(channelId)) {
             return message.reply('فيه لعبة تنلعب الحين.');
@@ -397,7 +394,6 @@ client.on('messageCreate', async (message) => {
         });
     }
 
-    // أمر فائز مباشر
     if (content.startsWith('!فائز')) {
         const user = message.mentions.users.first();
         if (user) {
