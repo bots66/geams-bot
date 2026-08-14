@@ -92,7 +92,7 @@ client.on('messageCreate', async (message) => {
         return message.reply('تم إيقاف اللعبة الحالية بنجاح.');
     }
 
-    // لعبة الأعلام
+    // لعبة الأعلام (تم التعديل لتظهر كـ Embed بدون روابط وبصورة متغيرة)
     if (content === 'أعلام' || content === 'اعلام') {
         if (activeGames.has(guildId)) {
             return message.reply('توجد لعبة تنلعب الحين، استخدم "إيقاف" أولاً.');
@@ -101,9 +101,12 @@ client.on('messageCreate', async (message) => {
         const randomFlag = flagsList[Math.floor(Math.random() * flagsList.length)];
         activeGames.set(guildId, { type: 'flag', answer: randomFlag.name });
 
-        await message.channel.send({
-            content: `**ما هو علم هذه الدولة؟ (معك 15 ثانية)**\n${randomFlag.url}`
-        });
+        const flagEmbed = new EmbedBuilder()
+            .setTitle('ما هو علم هذه الدولة؟ (معك 15 ثانية)')
+            .setImage(randomFlag.url)
+            .setColor(0x2f3136);
+
+        await message.channel.send({ embeds: [flagEmbed] });
 
         const filter = (m) => !m.author.bot;
         const collector = message.channel.createMessageCollector({ filter, time: 15000 });
@@ -172,7 +175,7 @@ client.on('messageCreate', async (message) => {
 
         let participants = [];
         const maxPlayers = 20;
-        const minPlayers = 1; // عدلتها لتناسب الاختبار السريع (يمكنك زيادتها لاحقاً)
+        const minPlayers = 1;
 
         const getRouletteEmbed = (count) => {
             return new EmbedBuilder()
@@ -298,7 +301,7 @@ client.on('messageCreate', async (message) => {
                     }
                 });
 
-                currentTrustIndex = currentTurnIndex++;
+                currentTurnIndex++;
             };
 
             runRouletteTurn();
