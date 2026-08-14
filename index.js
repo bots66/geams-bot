@@ -17,8 +17,9 @@ const client = new Client({
     ]
 });
 
-// متغيرات عامة لإدارة حالة الألعاب في السيرفرات
+// متغيرات عامة لإدارة حالة الألعاب والسيرفرات والقنوات لمنع التكرار جذرياً
 const activeGames = new Map();
+const activeChannels = new Set(); // حماية جذرية لمنع إرسال الألعاب مرتين في نفس القناة
 
 // قائمة الأعلام مع أسمائها المقبولة
 const flagsList = [
@@ -59,7 +60,7 @@ const fastWords = [
     "جريش", "منسف", "كبسة", "صيادية", "مقاليب", "تكتوكة", "مفطح", "مطازيز", "حنيني", "تشريبة"
 ];
 
-// دالة لتنظيف النصوص
+// دالة تنظيف النصوص
 function normalizeText(text) {
     if (!text) return "";
     return text
@@ -80,6 +81,7 @@ client.on('messageCreate', async (message) => {
 
     const content = message.content.trim();
     const guildId = message.guild.id;
+    const channelId = message.channel.id;
 
     // أمر إيقاف اللعبة
     if (content === 'إيقاف') {
@@ -89,20 +91,25 @@ client.on('messageCreate', async (message) => {
         const game = activeGames.get(guildId);
         if (game.timeout) clearTimeout(game.timeout);
         activeGames.delete(guildId);
+        activeChannels.delete(channelId);
         return message.reply('تم إيقاف اللعبة الحالية بنجاح.');
     }
 
-    // لعبة الأعلام (بدون كلام فوق الصورة وبصورة متغيرة نقية)
+    // لعبة الأعلام (مع منع التدبيل نهائياً وجعل الصورة مع العلم بالجانب الأيمن عبر الـ Thumbnail أو الشكل المطلوب)
     if (content === 'أعلام' || content === 'اعلام') {
-        if (activeGames.has(guildId)) {
+        if (activeGames.has(guildId) || activeChannels.has(channelId)) {
             return message.reply('توجد لعبة تنلعب الحين، استخدم "إيقاف" أولاً.');
         }
+
+        activeChannels.add(channelId);
 
         const randomFlag = flagsList[Math.floor(Math.random() * flagsList.length)];
         activeGames.set(guildId, { type: 'flag', answer: randomFlag.name });
 
+        // جعل العلم يظهر كصورة رئيسية أو مصغرة باليمين حسب الطلب والتصميم الاحترافي
         const flagEmbed = new EmbedBuilder()
-            .setImage(randomFlag.url)
+            .setThumbnail(randomFlag.url) // جعل العلم يظهر على الجانب الأيمن داخل الإيمبد
+            .setImage('https://cdn.discordapp.com/attachments/1537200039276056717/1537730891084857344/Fate.png') // الصورة المطلوبة بالأساس
             .setColor(0x2f3136);
 
         await message.channel.send({ embeds: [flagEmbed] });
@@ -115,6 +122,7 @@ client.on('messageCreate', async (message) => {
                 if (activeGames.has(guildId)) {
                     activeGames.delete(guildId);
                 }
+                activeChannels.delete(channelId);
                 collector.stop('won');
                 m.reply(`الفائز: <@${m.author.id}>`);
             }
@@ -123,6 +131,7 @@ client.on('messageCreate', async (message) => {
         collector.on('end', (collected, reason) => {
             if (reason !== 'won' && activeGames.has(guildId)) {
                 activeGames.delete(guildId);
+                activeChannels.delete(channelId);
                 message.channel.send('انتهى الوقت');
             }
         });
@@ -130,10 +139,11 @@ client.on('messageCreate', async (message) => {
 
     // لعبة أسرع
     if (content === 'أسرع' || content === 'اسرع') {
-        if (activeGames.has(guildId)) {
+        if (activeGames.has(guildId) || activeChannels.has(channelId)) {
             return message.reply('فيه لعبة تنلعب الحين.');
         }
 
+        activeChannels.add(channelId);
         const randomWord = fastWords[Math.floor(Math.random() * fastWords.length)];
         activeGames.set(guildId, { type: 'fast', answer: randomWord });
 
@@ -153,6 +163,7 @@ client.on('messageCreate', async (message) => {
                 if (activeGames.has(guildId)) {
                     activeGames.delete(guildId);
                 }
+                activeChannels.delete(channelId);
                 collector.stop('won');
                 m.reply(`الفائز: <@${m.author.id}>`);
             }
@@ -161,6 +172,7 @@ client.on('messageCreate', async (message) => {
         collector.on('end', (collected, reason) => {
             if (reason !== 'won' && activeGames.has(guildId)) {
                 activeGames.delete(guildId);
+                activeChannels.delete(channelId);
                 message.channel.send('انتهى الوقت');
             }
         });
@@ -168,10 +180,11 @@ client.on('messageCreate', async (message) => {
 
     // لعبة الروليت
     if (content === 'روليت') {
-        if (activeGames.has(guildId)) {
+        if (activeGames.has(guildId) || activeChannels.has(channelId)) {
             return message.reply('فيه لعبة تنلعب الحين.');
         }
 
+        activeChannels.add(channelId);
         let participants = [];
         const maxPlayers = 20;
         const minPlayers = 1;
@@ -228,6 +241,7 @@ client.on('messageCreate', async (message) => {
         collector.on('end', async () => {
             if (participants.length < minPlayers) {
                 activeGames.delete(guildId);
+                activeChannels.delete(channelId);
                 return message.channel.send('العدد غير مكتمل و تم إيقاف اللعبة.');
             }
 
@@ -238,6 +252,7 @@ client.on('messageCreate', async (message) => {
                     const winnerId = participants[0];
                     const winnerUser = await client.users.fetch(winnerId);
                     activeGames.delete(guildId);
+                    activeChannels.delete(channelId);
 
                     return message.channel.send({
                         content: `الفائز: <@${winnerUser.id}>\n${winnerUser.displayAvatarURL({ extension: 'png', size: 256 })}`
