@@ -21,8 +21,8 @@ const client = new Client({
 const activeGames = new Map();
 const activeChannels = new Set();
 
-// ضع هنا رابط الخلفية الصحيح والفعال لديك (تأكد أنه رابط مباشر ينتهي بـ .png أو .jpg)
-const FLAG_BACKGROUND_URL = "https://i.imgur.com/67D54CDE-E683-4CDB-A249-7FA9D7C3C780.png";
+// رابط خلفية آمن ومباشر (تأكد من استبداله برابط شغال ومباشر ينتهي بصيغة صورة)
+const FLAG_BACKGROUND_URL = "https://i.imgur.com/8Qq3ZQC.png";
 
 const FAST_IMAGE_URL = "https://cdn.discordapp.com/attachments/1537200039276056717/1537740104926498896/Fate.png";
 
@@ -109,11 +109,6 @@ const flagsList = [
     { name: "سنغافورة", url: "https://flagcdn.com/w320/sg.png" }
 ];
 
-const fastWords = [
-    "ذهبي", "حزام", "تفاحة", "سفينة", "طائرة", "سيارة", "قلم", "كتاب", "حاسوب", "هاتف", "طاولة", "كرسي",
-    "شباك", "باب", "شمس", "قمر", "نجمة", "سحاب", "مطر", "بحر", "نهر", "جبل"
-];
-
 function normalizeText(text) {
     if (!text) return "";
     return text
@@ -133,6 +128,17 @@ async function readImage(url) {
     } else {
         throw new Error("مكتبة Jimp لا تدعم الدالة read في هذا الإصدار.");
     }
+}
+
+// دالة آمنة لاستخراج الـ Buffer وتجنب خطأ null
+async function getJimpBufferSafe(imageObject) {
+    return new Promise((resolve, reject) => {
+        imageObject.getBuffer(Jimp.MIME_PNG, (err, buffer) => {
+            if (err) return reject(err);
+            if (!buffer) return reject(emp => new Error("فشل في استخراج الـ Buffer وأعاد قيمـة null"));
+            resolve(buffer);
+        });
+    });
 }
 
 client.once('ready', () => {
@@ -166,13 +172,19 @@ client.on('messageCreate', async (message) => {
         const randomFlag = flagsList[Math.floor(Math.random() * flagsList.length)];
 
         try {
-            const background = await Jimp.read("https://i.imgur.com/67D54CDE-E683-4CDB-A249-7FA9D7C3C780.png");
+            // جلب الخلفية والصورة بشكل آمن
+            const background = await readImage(FLAG_BACKGROUND_URL);
             const flagImage = await readImage(randomFlag.url);
+
+            if (!background || !flagImage) {
+                throw new Error("تعذر جلب إحدى الصور ( الخلفية أو العلم ) تأكد من الروابط.");
+            }
 
             flagImage.resize(110, 65); 
             background.composite(flagImage, 305, 30);
 
-            const buffer = await background.getBufferAsync(Jimp.MIME_PNG);
+            // استخدام الدالة الآمنة للـ Buffer لمنع ظهور خطأ الـ MIME
+            const buffer = await getJimpBufferSafe(background);
             const attachment = new AttachmentBuilder(buffer, { name: 'flag_game.png' });
 
             const flagEmbed = new EmbedBuilder()
