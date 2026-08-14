@@ -20,11 +20,10 @@ const client = new Client({
 const activeGames = new Map();
 const activeChannels = new Set();
 
-// روابط الصور المطلوبة
-const FLAG_IMAGE_URL = "https://cdn.discordapp.com/attachments/1537200039276056717/1537730891084857344/Fate.png";
+// رابط صورة لعبة أسرع فقط
 const FAST_IMAGE_URL = "https://cdn.discordapp.com/attachments/1537200039276056717/1537740104926498896/Fate.png";
 
-// قائمة الأعلام
+// قائمة الأعلام (صورة العلم ستكون هي الأساسية في الإيمبد)
 const flagsList = [
     { name: "مصر", url: "https://flagcdn.com/w320/eg.png" },
     { name: "المغرب", url: "https://flagcdn.com/w320/ma.png" },
@@ -108,7 +107,7 @@ const flagsList = [
     { name: "سنغافورة", url: "https://flagcdn.com/w320/sg.png" }
 ];
 
-// قائمة كلمات لعبة أسرع (وتتضمن "ذهبي")
+// قائمة كلمات لعبة أسرع
 const fastWords = [
     "ذهبي", "حزام", "تفاحة", "سفينة", "طائرة", "سيارة", "قلم", "كتاب", "حاسوب", "هاتف", "طاولة", "كرسي",
     "شباك", "باب", "شمس", "قمر", "نجمة", "سحاب", "مطر", "بحر", "نهر", "جبل",
@@ -135,7 +134,7 @@ const fastWords = [
     "منسف", "كبسة", "صيادية", "مقاليب", "تكتوكة", "مفطح", "مطازيز", "حنيني", "تشريبة"
 ];
 
-// دالة تنظيف النصوص لتسهيل الإجابة بدون همزات أو تاء مربوطة
+// دالة تنظيف النصوص
 function normalizeText(text) {
     if (!text) return "";
     return text
@@ -170,7 +169,7 @@ client.on('messageCreate', async (message) => {
         return message.reply('تم إيقاف اللعبة.');
     }
 
-    // لعبة الأعلام (بدون العنوان النصي العلوي، وصورة العلم في الثامبنيل)
+    // لعبة الأعلام (جعل صورة العلم العشوائي هي الصورة الأساسية مباشرة بدون أي صور مكررة فوقها)
     if (content === 'أعلام' || content === 'اعلام') {
         if (activeGames.has(guildId) || activeChannels.has(channelId)) {
             return message.reply('توجد لعبة تنلعب الحين، استخدم "إيقاف" أولاً.');
@@ -180,10 +179,9 @@ client.on('messageCreate', async (message) => {
 
         const randomFlag = flagsList[Math.floor(Math.random() * flagsList.length)];
 
-        // إرسال إيمبد بدون عنوان نصي، فقط الصورة الخارجية والثامبنيل الخاص بالعلم
+        // جعل صورة العلم العشوائي تظهر مباشرة كصورة رئيسية في الإيمبد
         const flagEmbed = new EmbedBuilder()
-            .setImage(FLAG_IMAGE_URL)
-            .setThumbnail(randomFlag.url)
+            .setImage(randomFlag.url)
             .setColor(0x2f3136);
 
         await message.channel.send({ embeds: [flagEmbed] });
@@ -214,7 +212,7 @@ client.on('messageCreate', async (message) => {
         });
     }
 
-    // لعبة أسرع (تظهر كلمة ذهبي في المنتصف، وعند الفوز يرسل الفائز: مع المنشن)
+    // لعبة أسرع (العنوان الثابت في الأعلى والكلمة العشوائية المتغيرة في المنتصف فقط)
     if (content === 'أسرع' || content === 'اسرع') {
         if (activeGames.has(guildId) || activeChannels.has(channelId)) {
             return message.reply('فيه لعبة تنلعب الحين.');
