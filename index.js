@@ -7,7 +7,7 @@ const {
     EmbedBuilder, 
     AttachmentBuilder 
 } = require('discord.js');
-const { createCanvas, loadImage } = require('canvas');
+
 
 const client = new Client({
     intents: [
