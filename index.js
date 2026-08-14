@@ -21,6 +21,7 @@ const client = new Client({
 const activeGames = new Map();
 const activeChannels = new Set();
 
+// ضع هنا رابط الخلفية الصحيح والفعال لديك
 const FLAG_BACKGROUND_URL = "https://cdn.discordapp.com/attachments/1537200039276056717/1537747410166743070/67D54CDE-E683-4CDB-A249-7FA9D7C3C780.png";
 const FAST_IMAGE_URL = "https://cdn.discordapp.com/attachments/1537200039276056717/1537740104926498896/Fate.png";
 
@@ -109,28 +110,7 @@ const flagsList = [
 
 const fastWords = [
     "ذهبي", "حزام", "تفاحة", "سفينة", "طائرة", "سيارة", "قلم", "كتاب", "حاسوب", "هاتف", "طاولة", "كرسي",
-    "شباك", "باب", "شمس", "قمر", "نجمة", "سحاب", "مطر", "بحر", "نهر", "جبل",
-    "حائط", "ساعة", "مصباح", "حقيبة", "مفتاح", "وردة", "شجرة", "عصفور", "قطة", "كلب",
-    "حصان", "جمل", "أسد", "فهد", "ذئب", "ثعلب", "قرد", "دب", "فيل", "زرافة",
-    "بطريق", "نسر", "صقر", "حمامة", "دجاجة", "بقرة", "خروف", "معزة", "سمكة", "قرش",
-    "حوت", "سلحفاة", "تمساح", "ثعبان", "ضفدع", "فراشة", "نحلة", "نملة", "عنكبوت", "ذبابة",
-    "طماطم", "خيار", "بطاطس", "بصل", "ثوم", "جزر", "خس", "بقدونس", "موز", "برتقال",
-    "تفاح", "عنب", "توت", "فراولة", "مانجو", "اناناس", "بطيخ", "شمام", "رمان", "كيوي",
-    "حليب", "جبن", "زبدة", "عسل", "سكر", "ملح", "بهارات", "قهوة", "شاي", "ماء",
-    "حذاء", "قميص", "بنطلون", "قبعة", "نظارة", "معطف", "خاتم", "سوار", "عقد",
-    "مسجد", "مدرسة", "مستشفى", "ملعب", "حديقة", "شارع", "مدينة", "قرية", "دولة", "عالم",
-    "قارب", "قطار", "صواريخ", "فضاء", "كوكب", "مجرة", "ليل", "نهار", "صيف",
-    "شتاء", "ربيع", "خريف", "رياح", "عاصفة", "برق", "رعد", "ثلوج", "جليد", "رمال",
-    "صخر", "تراب", "سقف", "أرض", "غرفة", "مطبخ", "حمام", "صالة", "مكتب", "متجر",
-    "سوق", "مصنع", "شركة", "بنك", "مطار", "ميناء", "محطة", "طريق", "جسر", "برج",
-    "قلعة", "قصر", "متحف", "مسرح", "سينما", "كرة", "هدف", "حارس", "مدرب",
-    "فريق", "لاعب", "سباق", "سرعة", "فوز", "جائزة", "وسام", "درع", "تاج", "عرش",
-    "ملك", "أمير", "وزير", "قاضي", "طبيب", "مهندس", "معلم", "طالب", "عامل", "تاجر",
-    "فنان", "كاتب", "شاعر", "رسام", "مغامرة", "قصة", "رواية", "لعبة", "سؤال", "جواب",
-    "فكرة", "رأي", "صوت", "صورة", "لون", "أحمر", "أزرق", "أخضر", "أصفر", "أسود",
-    "أبيض", "برتقالي", "بنفسجي", "وردي", "رمادي", "بني", "فضي", "حديد", "نحاس",
-    "ذهب", "فضة", "ألماس", "ياقوت", "مرجان", "لؤلؤ", "صدف", "موج", "شاطئ", "ميدان",
-    "منسف", "كبسة", "صيادية", "مقاليب", "تكتوكة", "مفطح", "مطازيز", "حنيني", "تشريبة", "وزه"
+    "شباك", "باب", "شمس", "قمر", "نجمة", "سحاب", "مطر", "بحر", "نهر", "جبل"
 ];
 
 function normalizeText(text) {
@@ -144,7 +124,6 @@ function normalizeText(text) {
         .replace(/ى/g, 'ي');
 }
 
-// دالة مسلّكة لقراءة الصور تتوافق مع جميع إصدارات Jimp
 async function readImage(url) {
     if (typeof Jimp.read === 'function') {
         return await Jimp.read(url);
@@ -183,14 +162,16 @@ client.on('messageCreate', async (message) => {
         }
 
         activeChannels.add(channelId);
+        // اختيار علم عشوائي تلقائياً من القائمة
         const randomFlag = flagsList[Math.floor(Math.random() * flagsList.length)];
 
         try {
+            // تحميل الخلفية وعلم الدولة عشوائياً بشكل تلقائي
             const background = await readImage(FLAG_BACKGROUND_URL);
             const flagImage = await readImage(randomFlag.url);
 
             flagImage.resize(110, 65); 
-            background.composite(flagImage, 305, 30);
+            background.composite(flagImage, 305, 30); // دمج العلم فوق الخلفية تلقائياً
 
             const buffer = await background.getBufferAsync(Jimp.MIME_PNG);
             const attachment = new AttachmentBuilder(buffer, { name: 'flag_game.png' });
@@ -234,199 +215,6 @@ client.on('messageCreate', async (message) => {
             console.error("خطأ تفصيلي أثناء معالجة صورة العلم:", error);
             activeChannels.delete(channelId);
             return message.reply(`حدث خطأ أثناء معالجة صورة العلم: ${error.message}`);
-        }
-    }
-
-    if (content === 'أسرع' || content === 'اسرع') {
-        if (activeGames.has(guildId) || activeChannels.has(channelId)) {
-            return message.reply('فيه لعبة تنلعب الحين.');
-        }
-
-        activeChannels.add(channelId);
-        const randomWord = fastWords[Math.floor(Math.random() * fastWords.length)];
-        activeGames.set(guildId, { type: 'fast', answer: randomWord });
-
-        const fastEmbed = new EmbedBuilder()
-            .setTitle("اسرع من يكتب")
-            .setDescription(`**${randomWord}**`)
-            .setImage(FAST_IMAGE_URL)
-            .setColor(0x2f3136);
-
-        await message.channel.send({ embeds: [fastEmbed] });
-
-        const filter = (m) => !m.author.bot;
-        const collector = message.channel.createMessageCollector({ filter, time: 15000 });
-        activeGames.get(guildId).collector = collector;
-
-        collector.on('collect', (m) => {
-            if (normalizeText(m.content) === normalizeText(randomWord)) {
-                if (activeGames.has(guildId)) {
-                    activeGames.delete(guildId);
-                }
-                activeChannels.delete(channelId);
-                collector.stop('won');
-                m.channel.send(`الفائز: <@${m.author.id}>`);
-            }
-        });
-
-        collector.on('end', (collected, reason) => {
-            if (reason !== 'won' && activeGames.has(guildId)) {
-                activeGames.delete(guildId);
-                activeChannels.delete(channelId);
-                message.channel.send('انتهى الوقت');
-            }
-        });
-    }
-
-    if (content === 'روليت') {
-        if (activeGames.has(guildId) || activeChannels.has(channelId)) {
-            return message.reply('فيه لعبة تنلعب الحين.');
-        }
-
-        activeChannels.add(channelId);
-        let participants = [];
-        const maxPlayers = 20;
-        const minPlayers = 1;
-
-        const getRouletteEmbed = (count) => {
-            return new EmbedBuilder()
-                .setDescription(`0/${maxPlayers}\nالعدد الحالي: ${count}`)
-                .setColor(0x2f3136);
-        };
-
-        const joinButton = new ButtonBuilder()
-            .setCustomId('roulette_join')
-            .setLabel('انضمام')
-            .setStyle(ButtonStyle.Primary);
-
-        const leaveButton = new ButtonBuilder()
-            .setCustomId('roulette_leave')
-            .setLabel('انسحاب')
-            .setStyle(ButtonStyle.Danger);
-
-        const row = new ActionRowBuilder().addComponents(joinButton, leaveButton);
-
-        const rouletteMessage = await message.channel.send({
-            content: `روليت`,
-            embeds: [getRouletteEmbed(0)],
-            components: [row]
-        });
-
-        activeGames.set(guildId, { type: 'roulette', participants, message: rouletteMessage });
-
-        const collector = rouletteMessage.createMessageComponentCollector({ time: 30000 });
-
-        collector.on('collect', async (interaction) => {
-            const userId = interaction.user.id;
-
-            if (interaction.customId === 'roulette_join') {
-                if (participants.includes(userId)) {
-                    return interaction.reply({ content: 'أنت بالفعل منضم للعبة.', ephemeral: true });
-                }
-                participants.push(userId);
-                await interaction.reply({ content: 'تم الانضمام', ephemeral: true });
-                await interaction.message.edit({ embeds: [getRouletteEmbed(participants.length)] });
-            } 
-            else if (interaction.customId === 'roulette_leave') {
-                if (!participants.includes(userId)) {
-                    return interaction.reply({ content: 'أنت بالفعل خارج اللعبة.', ephemeral: true });
-                }
-                participants = participants.filter(id => id !== userId);
-                await interaction.reply({ content: 'تم الانسحاب', ephemeral: true });
-                await interaction.message.edit({ embeds: [getRouletteEmbed(participants.length)] });
-            }
-        });
-
-        collector.on('end', async () => {
-            if (participants.length < minPlayers) {
-                activeGames.delete(guildId);
-                activeChannels.delete(channelId);
-                return message.channel.send('العدد غير مكتمل و تم إيقاف اللعبة.');
-            }
-
-            let currentTurnIndex = 0;
-
-            const runRouletteTurn = async () => {
-                if (participants.length <= 1) {
-                    const winnerId = participants[0];
-                    const winnerUser = await client.users.fetch(winnerId);
-                    activeGames.delete(guildId);
-                    activeChannels.delete(channelId);
-
-                    return message.channel.send({
-                        content: `الفائز: <@${winnerUser.id}>\n${winnerUser.displayAvatarURL({ extension: 'png', size: 256 })}`
-                    });
-                }
-
-                const targetedUserId = participants[currentTurnIndex % participants.length];
-
-                const targetRow = new ActionRowBuilder();
-                for (const id of participants) {
-                    const u = await client.users.fetch(id);
-                    targetRow.addComponents(
-                        new ButtonBuilder()
-                            .setCustomId(`kick_${id}`)
-                            .setLabel(u.username.substring(0, 20))
-                            .setStyle(ButtonStyle.Secondary)
-                    );
-                }
-
-                targetRow.addComponents(
-                    new ButtonBuilder()
-                        .setCustomId('kick_random')
-                        .setLabel('عشوائي')
-                        .setStyle(ButtonStyle.Success)
-                );
-
-                const turnMsg = await message.channel.send({
-                    content: `دور اللاعب: <@${targetedUserId}>\nاختر شخصاً لطرده أو اختر عشوائي:`,
-                    components: [targetRow]
-                });
-
-                const turnCollector = turnMsg.createMessageComponentCollector({ time: 20000 });
-
-                turnCollector.on('collect', async (i) => {
-                    if (i.user.id !== targetedUserId) {
-                        return i.reply({ content: 'هذا مو دورك', ephemeral: true });
-                    }
-
-                    let kickedId;
-                    if (i.customId === 'kick_random') {
-                        const remaining = participants.filter(id => id !== targetedUserId);
-                        kickedId = remaining[Math.floor(Math.random() * remaining.length)];
-                    } else {
-                        kickedId = i.customId.replace('kick_', '');
-                    }
-
-                    participants = participants.filter(id => id !== kickedId);
-                    await i.update({ content: `تم طرد <@${kickedId}>`, components: [] });
-                    turnCollector.stop();
-                    setTimeout(runRouletteTurn, 1500);
-                });
-
-                turnCollector.on('end', (collected, reason) => {
-                    if (reason === 'time') {
-                        const remaining = participants.filter(id => id !== targetedUserId);
-                        const kickedId = remaining[Math.floor(Math.random() * remaining.length)];
-                        participants = participants.filter(id => id !== kickedId);
-                        message.channel.send(`انتهى الوقت، تم طرد <@${kickedId}> تلقائياً.`);
-                        setTimeout(runRouletteTurn, 1500);
-                    }
-                });
-
-                currentTurnIndex++;
-            };
-
-            runRouletteTurn();
-        });
-    }
-
-    if (content.startsWith('!فائز')) {
-        const user = message.mentions.users.first();
-        if (user) {
-            await message.channel.send(`الفائز: ${user}`);
-        } else {
-            await message.channel.send("يرجى ذكر الفائز.");
         }
     }
 });
