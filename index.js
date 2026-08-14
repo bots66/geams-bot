@@ -4,8 +4,7 @@ const {
     ActionRowBuilder, 
     ButtonBuilder, 
     ButtonStyle, 
-    EmbedBuilder, 
-    AttachmentBuilder 
+    EmbedBuilder 
 } = require('discord.js');
 
 const client = new Client({
@@ -34,7 +33,7 @@ const flagsList = [
     { name: "فرنسا", url: "https://flagcdn.com/w320/fr.png" },
     { name: "المانيا", url: "https://flagcdn.com/w320/de.png" },
     { name: "اليابان", url: "https://flagcdn.com/w320/jp.png" },
-    { name: "سنغافورة", url: "https://flagcdn.com/w320/sg.png" },
+    { name: "ايطاليا", url: "https://flagcdn.com/w320/it.png" },
     { name: "الكويت", url: "https://flagcdn.com/w320/kw.png" },
     { name: "قطر", url: "https://flagcdn.com/w320/qa.png" },
     { name: "البحرين", url: "https://flagcdn.com/w320/bh.png" },
@@ -56,7 +55,6 @@ const flagsList = [
     { name: "امريكا", url: "https://flagcdn.com/w320/us.png" },
     { name: "بريطانيا", url: "https://flagcdn.com/w320/gb.png" },
     { name: "كندا", url: "https://flagcdn.com/w320/ca.png" },
-    { name: "ايطاليا", url: "https://flagcdn.com/w320/it.png" },
     { name: "اسبانيا", url: "https://flagcdn.com/w320/es.png" },
     { name: "تركيا", url: "https://flagcdn.com/w320/tr.png" },
     { name: "ايران", url: "https://flagcdn.com/w320/ir.png" },
@@ -109,9 +107,9 @@ const flagsList = [
     { name: "بنما", url: "https://flagcdn.com/w320/pa.png" }
 ];
 
-// قائمة كلمات لعبة أسرع
+// قائمة كلمات لعبة أسرع (بما فيها حزام وغيرها)
 const fastWords = [
-    "تفاحة", "سفينة", "طائرة", "سيارة", "قلم", "كتاب", "حاسوب", "هاتف", "طاولة", "كرسي",
+    "حزام", "تفاحة", "سفينة", "طائرة", "سيارة", "قلم", "كتاب", "حاسوب", "هاتف", "طاولة", "كرسي",
     "شباك", "باب", "شمس", "قمر", "نجمة", "سحاب", "مطر", "بحر", "نهر", "جبل",
     "حائط", "ساعة", "مصباح", "حقيبة", "مفتاح", "وردة", "شجرة", "عصفور", "قطة", "كلب",
     "حصان", "جمل", "أسد", "فهد", "ذئب", "ثعلب", "قرد", "دب", "فيل", "زرافة",
@@ -120,7 +118,7 @@ const fastWords = [
     "طماطم", "خيار", "بطاطس", "بصل", "ثوم", "جزر", "خس", "بقدونس", "موز", "برتقال",
     "تفاح", "عنب", "توت", "فراولة", "مانجو", "اناناس", "بطيخ", "شمام", "رمان", "كيوي",
     "حليب", "جبن", "زبدة", "عسل", "سكر", "ملح", "بهارات", "قهوة", "شاي", "ماء",
-    "حذاء", "قميص", "بنطلون", "قبعة", "نظارة", "حزام", "معطف", "خاتم", "سوار", "عقد",
+    "حذاء", "قميص", "بنطلون", "قبعة", "نظارة", "معطف", "خاتم", "سوار", "عقد",
     "مسجد", "مدرسة", "مستشفى", "ملعب", "حديقة", "شارع", "مدينة", "قرية", "دولة", "عالم",
     "قارب", "قطار", "صواريخ", "فضاء", "كوكب", "مجرة", "ليل", "نهار", "صيف",
     "شتاء", "ربيع", "خريف", "رياح", "عاصفة", "برق", "رعد", "ثلوج", "جليد", "رمال",
@@ -171,7 +169,7 @@ client.on('messageCreate', async (message) => {
         return message.reply('تم إيقاف اللعبة.');
     }
 
-    // لعبة الأعلام
+    // لعبة الأعلام (في إيمبد واحد يجمع العنوان والعلم)
     if (content === 'أعلام' || content === 'اعلام') {
         if (activeGames.has(guildId) || activeChannels.has(channelId)) {
             return message.reply('توجد لعبة تنلعب الحين، استخدم "إيقاف" أولاً.');
@@ -182,12 +180,10 @@ client.on('messageCreate', async (message) => {
         // اختيار علم عشوائي من القائمة
         const randomFlag = flagsList[Math.floor(Math.random() * flagsList.length)];
 
-        // إرسال رابط الصورة المطلوبة كرسالة أولى
-        await message.channel.send(FLAG_IMAGE_URL);
-
-        // إرسال إيمبد يكتب "علم أي دولة ؟" مع العلم المتغير في اليمين
+        // إرسال إيمبد يدمج الصورة الخارجية وعنوان اللعبة والعلم في اليمين برسالة واحدة
         const flagEmbed = new EmbedBuilder()
             .setTitle("علم أي دولة ؟")
+            .setImage(FLAG_IMAGE_URL)
             .setThumbnail(randomFlag.url)
             .setColor(0x2f3136);
 
@@ -206,7 +202,6 @@ client.on('messageCreate', async (message) => {
                 }
                 activeChannels.delete(channelId);
                 collector.stop('won');
-                // الفائز ومنشنه فقط بدون أي إضافات أو فواصل
                 m.channel.send(`<@${m.author.id}>`);
             }
         });
@@ -220,7 +215,7 @@ client.on('messageCreate', async (message) => {
         });
     }
 
-    // لعبة أسرع
+    // لعبة أسرع (في إيمبد واحد يدمج الصورة والكلمة في المنتصف)
     if (content === 'أسرع' || content === 'اسرع') {
         if (activeGames.has(guildId) || activeChannels.has(channelId)) {
             return message.reply('فيه لعبة تنلعب الحين.');
@@ -230,11 +225,14 @@ client.on('messageCreate', async (message) => {
         const randomWord = fastWords[Math.floor(Math.random() * fastWords.length)];
         activeGames.set(guildId, { type: 'fast', answer: randomWord });
 
-        // إرسال رابط صورة أسرع المحددة
-        await message.channel.send(FAST_IMAGE_URL);
+        // إرسال الكلمة والصورة داخل إيمبد واحد منسق
+        const fastEmbed = new EmbedBuilder()
+            .setTitle("اسرع من يكتب")
+            .setDescription(`**${randomWord}**`)
+            .setImage(FAST_IMAGE_URL)
+            .setColor(0x2f3136);
 
-        // إرسال الكلمة العشوائية من الـ 300 كلمة في النص
-        await message.channel.send(`أسرع: **${randomWord}**`);
+        await message.channel.send({ embeds: [fastEmbed] });
 
         const filter = (m) => !m.author.bot;
         const collector = message.channel.createMessageCollector({ filter, time: 15000 });
@@ -247,7 +245,6 @@ client.on('messageCreate', async (message) => {
                 }
                 activeChannels.delete(channelId);
                 collector.stop('won');
-                // الفائز ومنشنه فقط بدون أي إضافات
                 m.channel.send(`<@${m.author.id}>`);
             }
         });
