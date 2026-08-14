@@ -20,11 +20,10 @@ const client = new Client({
 const activeGames = new Map();
 const activeChannels = new Set();
 
-// الروابط الجديدة المطلوبة للصورة الأساسية للأعلام ولعبة أسرع
-const FLAG_BASE_IMAGE_URL = "https://cdn.discordapp.com/attachments/1537200039276056717/1537730891084857344/Fate.png";
+// رابط صورة الواجهة الأساسية للعبة أسرع
 const FAST_IMAGE_URL = "https://cdn.discordapp.com/attachments/1537200039276056717/1537740104926498896/Fate.png";
 
-// قائمة الأعلام مع روابطها المتغيرة
+// قائمة الأعلام (العلم العشوائي سيظهر في مكان الصورة الرئيسية الإيمبد مباشرة)
 const flagsList = [
     { name: "مصر", url: "https://flagcdn.com/w320/eg.png" },
     { name: "المغرب", url: "https://flagcdn.com/w320/ma.png" },
@@ -108,7 +107,7 @@ const flagsList = [
     { name: "سنغافورة", url: "https://flagcdn.com/w320/sg.png" }
 ];
 
-// قائمة كلمات لعبة أسرع المتغيرة (بدل جريش وغيرها)
+// قائمة كلمات لعبة أسرع المتغيرة (مثل: وزه، حزام، ذهبي... إلخ)
 const fastWords = [
     "ذهبي", "حزام", "تفاحة", "سفينة", "طائرة", "سيارة", "قلم", "كتاب", "حاسوب", "هاتف", "طاولة", "كرسي",
     "شباك", "باب", "شمس", "قمر", "نجمة", "سحاب", "مطر", "بحر", "نهر", "جبل",
@@ -170,7 +169,7 @@ client.on('messageCreate', async (message) => {
         return message.reply('تم إيقاف اللعبة.');
     }
 
-    // لعبة الأعلام (الصورة الأساسية الجديدة + علم متغير في المربع المخصص)
+    // لعبة الأعلام (وضع العلم العشوائي مباشرة كمحتوى رئيسي للإيمبد بدلاً من سنغافورة وبدون أي صورة فوقها)
     if (content === 'أعلام' || content === 'اعلام') {
         if (activeGames.has(guildId) || activeChannels.has(channelId)) {
             return message.reply('توجد لعبة تنلعب الحين، استخدم "إيقاف" أولاً.');
@@ -181,8 +180,7 @@ client.on('messageCreate', async (message) => {
         const randomFlag = flagsList[Math.floor(Math.random() * flagsList.length)];
 
         const flagEmbed = new EmbedBuilder()
-            .setImage(FLAG_BASE_IMAGE_URL)
-            .setThumbnail(randomFlag.url)
+            .setImage(randomFlag.url) // العلم العشوائي يظهر في مكان الصورة الكبيرة مباشرة
             .setColor(0x2f3136);
 
         await message.channel.send({ embeds: [flagEmbed] });
@@ -213,7 +211,7 @@ client.on('messageCreate', async (message) => {
         });
     }
 
-    // لعبة أسرع (الصورة الجديدة + كلمة متغيرة في المنتصف بدل جريش)
+    // لعبة أسرع (الصورة الأساسية للعبة مع الكلمة المتغيرة في المنتصف بدل جريش)
     if (content === 'أسرع' || content === 'اسرع') {
         if (activeGames.has(guildId) || activeChannels.has(channelId)) {
             return message.reply('فيه لعبة تنلعب الحين.');
