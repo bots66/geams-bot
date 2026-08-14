@@ -19,7 +19,7 @@ const client = new Client({
 const activeGames = new Map();
 const activeChannels = new Set();
 
-// رابط صورة الواجهة الجديدة للعبة الأعلام
+// رابط صورة الواجهة الأساسية
 const FLAG_BACKGROUND_URL = "https://cdn.discordapp.com/attachments/1537200039276056717/1537747410166743070/67D54CDE-E683-4CDB-A249-7FA9D7C3C780.png";
 const FAST_IMAGE_URL = "https://cdn.discordapp.com/attachments/1537200039276056717/1537740104926498896/Fate.png";
 
@@ -166,7 +166,7 @@ client.on('messageCreate', async (message) => {
         return message.reply('تم إيقاف اللعبة.');
     }
 
-    // لعبة الأعلام (الصورة الجديدة كواجهة أساسية، والعلم العشوائي يظهر بجانبها تلقائياً مع النصوص)
+    // لعبة الأعلام (العنوان والنص فوق، العلم العشوائي بجانبهم كـ Thumbnail، والصورة الأساسية بالأسفل)
     if (content === 'أعلام' || content === 'اعلام') {
         if (activeGames.has(guildId) || activeChannels.has(channelId)) {
             return message.reply('توجد لعبة تنلعب الحين، استخدم "إيقاف" أولاً.');
@@ -179,8 +179,8 @@ client.on('messageCreate', async (message) => {
         const flagEmbed = new EmbedBuilder()
             .setTitle("علم أي دولة ؟")
             .setDescription("⏳ لديك 15 ثانيه")
-            .setImage(FLAG_BACKGROUND_URL) // الخلفية الجديدة التي أرسلتها
-            .setThumbnail(randomFlag.url)    // العلم العشوائي يظهر تلقائياً في المكان المخصص بجانبها
+            .setThumbnail(randomFlag.url)    // العلم المتغير يظهر تلقائياً في الأعلى بجانب العنوان والنص
+            .setImage(FLAG_BACKGROUND_URL) // الصورة الثابتة التي أرسلتها تظهر في الأسفل كصورة رئيسية
             .setColor(0x2f3136);
 
         await message.channel.send({ embeds: [flagEmbed] });
