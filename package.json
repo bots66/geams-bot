@@ -1,13 +1,12 @@
 {
   "name": "discord-games-bot",
   "version": "1.0.0",
-  "description": "بوت ألعاب ديسكورد متكامل (أعلام، أسرع، روليت)",
+  "description": "بوت ألعاب ديسكورد متكامل",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
-    "canvas": "^2.11.2",
     "discord.js": "^14.14.1"
   },
   "engines": {
