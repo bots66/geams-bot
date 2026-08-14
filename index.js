@@ -21,7 +21,7 @@ const client = new Client({
 const activeGames = new Map();
 const activeChannels = new Set();
 
-// ضع هنا رابط الخلفية الصحيح والفعال لديك
+// ضع هنا رابط الخلفية الصحيح والفعال لديك (تأكد أنه رابط مباشر ينتهي بـ .png أو .jpg)
 const FLAG_BACKGROUND_URL = "https://cdn.discordapp.com/attachments/1537200039276056717/1537747410166743070/67D54CDE-E683-4CDB-A249-7FA9D7C3C780.png";
 const FAST_IMAGE_URL = "https://cdn.discordapp.com/attachments/1537200039276056717/1537740104926498896/Fate.png";
 
@@ -162,16 +162,14 @@ client.on('messageCreate', async (message) => {
         }
 
         activeChannels.add(channelId);
-        // اختيار علم عشوائي تلقائياً من القائمة
         const randomFlag = flagsList[Math.floor(Math.random() * flagsList.length)];
 
         try {
-            // تحميل الخلفية وعلم الدولة عشوائياً بشكل تلقائي
             const background = await readImage(FLAG_BACKGROUND_URL);
             const flagImage = await readImage(randomFlag.url);
 
             flagImage.resize(110, 65); 
-            background.composite(flagImage, 305, 30); // دمج العلم فوق الخلفية تلقائياً
+            background.composite(flagImage, 305, 30);
 
             const buffer = await background.getBufferAsync(Jimp.MIME_PNG);
             const attachment = new AttachmentBuilder(buffer, { name: 'flag_game.png' });
