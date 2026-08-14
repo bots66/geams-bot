@@ -4,8 +4,10 @@ const {
     ActionRowBuilder, 
     ButtonBuilder, 
     ButtonStyle, 
-    EmbedBuilder 
+    EmbedBuilder,
+    AttachmentBuilder 
 } = require('discord.js');
+const Jimp = require('jimp');
 
 const client = new Client({
     intents: [
@@ -166,49 +168,66 @@ client.on('messageCreate', async (message) => {
         return message.reply('تم إيقاف اللعبة.');
     }
 
-    // لعبة الأعلام (العنوان والنص فوق، العلم العشوائي بجانبهم كـ Thumbnail، والصورة الأساسية بالأسفل)
+    // لعبة الأعلام (دمج العلم داخل الفراغ الأيمن في الصورة برمجياً)
     if (content === 'أعلام' || content === 'اعلام') {
         if (activeGames.has(guildId) || activeChannels.has(channelId)) {
             return message.reply('توجد لعبة تنلعب الحين، استخدم "إيقاف" أولاً.');
         }
 
         activeChannels.add(channelId);
-
         const randomFlag = flagsList[Math.floor(Math.random() * flagsList.length)];
 
-        const flagEmbed = new EmbedBuilder()
-            .setTitle("علم أي دولة ؟")
-            .setDescription("⏳ لديك 15 ثانيه")
-            .setThumbnail(randomFlag.url)    // العلم المتغير يظهر تلقائياً في الأعلى بجانب العنوان والنص
-            .setImage(FLAG_BACKGROUND_URL) // الصورة الثابتة التي أرسلتها تظهر في الأسفل كصورة رئيسية
-            .setColor(0x2f3136);
+        try {
+            const background = await Jimp.read(FLAG_BACKGROUND_URL);
+            const flagImage = await Jimp.read(randomFlag.url);
 
-        await message.channel.send({ embeds: [flagEmbed] });
+            // تعديل الحجم والإحداثيات لتنزل داخل الفراغ في اليمين تماماً
+            flagImage.resize(110, 65); 
+            background.composite(flagImage, 305, 30);
 
-        activeGames.set(guildId, { type: 'flag', answer: randomFlag.name });
+            const buffer = await background.getBufferAsync(Jimp.MIME_PNG);
+            const attachment = new AttachmentBuilder(buffer, { name: 'flag_game.png' });
 
-        const filter = (m) => !m.author.bot;
-        const collector = message.channel.createMessageCollector({ filter, time: 15000 });
-        activeGames.get(guildId).collector = collector;
+            const flagEmbed = new EmbedBuilder()
+                .setImage('attachment://flag_game.png')
+                .setColor(0x2f3136);
 
-        collector.on('collect', (m) => {
-            if (normalizeText(m.content) === normalizeText(randomFlag.name)) {
-                if (activeGames.has(guildId)) {
-                    activeGames.delete(guildId);
+            const sentMessage = await message.channel.send({ 
+                content: "**علم أي دولة ؟**\n⏳ لديك 15 ثانيه",
+                embeds: [flagEmbed],
+                files: [attachment] 
+            });
+
+            activeGames.set(guildId, { type: 'flag', answer: randomFlag.name });
+
+            const filter = (m) => !m.author.bot;
+            const collector = message.channel.createMessageCollector({ filter, time: 15000 });
+            activeGames.get(guildId).collector = collector;
+
+            collector.on('collect', (m) => {
+                if (normalizeText(m.content) === normalizeText(randomFlag.name)) {
+                    if (activeGames.has(guildId)) {
+                        activeGames.delete(guildId);
+                    }
+                    activeChannels.delete(channelId);
+                    collector.stop('won');
+                    m.channel.send(`الفائز: <@${m.author.id}>`);
                 }
-                activeChannels.delete(channelId);
-                collector.stop('won');
-                m.channel.send(`الفائز: <@${m.author.id}>`);
-            }
-        });
+            });
 
-        collector.on('end', (collected, reason) => {
-            if (reason !== 'won' && activeGames.has(guildId)) {
-                activeGames.delete(guildId);
-                activeChannels.delete(channelId);
-                message.channel.send('انتهى الوقت');
-            }
-        });
+            collector.on('end', (collected, reason) => {
+                if (reason !== 'won' && activeGames.has(guildId)) {
+                    activeGames.delete(guildId);
+                    activeChannels.delete(channelId);
+                    message.channel.send('انتهى الوقت');
+                }
+            });
+
+        } catch (error) {
+            console.error("خطأ أثناء دمج صورة العلم:", error);
+            activeChannels.delete(channelId);
+            return message.reply("حدث خطأ أثناء معالجة صورة العلم.");
+        }
     }
 
     // لعبة أسرع
