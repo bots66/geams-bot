@@ -21,11 +21,9 @@ const client = new Client({
 const activeGames = new Map();
 const activeChannels = new Set();
 
-// رابط صورة الواجهة الأساسية
 const FLAG_BACKGROUND_URL = "https://cdn.discordapp.com/attachments/1537200039276056717/1537747410166743070/67D54CDE-E683-4CDB-A249-7FA9D7C3C780.png";
 const FAST_IMAGE_URL = "https://cdn.discordapp.com/attachments/1537200039276056717/1537740104926498896/Fate.png";
 
-// قائمة الأعلام الكاملة
 const flagsList = [
     { name: "مصر", url: "https://flagcdn.com/w320/eg.png" },
     { name: "المغرب", url: "https://flagcdn.com/w320/ma.png" },
@@ -168,7 +166,6 @@ client.on('messageCreate', async (message) => {
         return message.reply('تم إيقاف اللعبة.');
     }
 
-    // لعبة الأعلام (دمج العلم داخل الفراغ الأيمن في الصورة برمجياً)
     if (content === 'أعلام' || content === 'اعلام') {
         if (activeGames.has(guildId) || activeChannels.has(channelId)) {
             return message.reply('توجد لعبة تنلعب الحين، استخدم "إيقاف" أولاً.');
@@ -178,10 +175,10 @@ client.on('messageCreate', async (message) => {
         const randomFlag = flagsList[Math.floor(Math.random() * flagsList.length)];
 
         try {
+            // تحميل الصور باستخدام Jimp مع تفعيل القراءة المباشرة من الروابط
             const background = await Jimp.read(FLAG_BACKGROUND_URL);
             const flagImage = await Jimp.read(randomFlag.url);
 
-            // تعديل الحجم والإحداثيات لتنزل داخل الفراغ في اليمين تماماً
             flagImage.resize(110, 65); 
             background.composite(flagImage, 305, 30);
 
@@ -192,7 +189,7 @@ client.on('messageCreate', async (message) => {
                 .setImage('attachment://flag_game.png')
                 .setColor(0x2f3136);
 
-            const sentMessage = await message.channel.send({ 
+            await message.channel.send({ 
                 content: "**علم أي دولة ؟**\n⏳ لديك 15 ثانيه",
                 embeds: [flagEmbed],
                 files: [attachment] 
@@ -224,13 +221,12 @@ client.on('messageCreate', async (message) => {
             });
 
         } catch (error) {
-            console.error("خطأ أثناء دمج صورة العلم:", error);
+            console.error("خطأ تفصيلي أثناء معالجة صورة العلم:", error);
             activeChannels.delete(channelId);
-            return message.reply("حدث خطأ أثناء معالجة صورة العلم.");
+            return message.reply(`حدث خطأ أثناء معالجة صورة العلم: ${error.message}`);
         }
     }
 
-    // لعبة أسرع
     if (content === 'أسرع' || content === 'اسرع') {
         if (activeGames.has(guildId) || activeChannels.has(channelId)) {
             return message.reply('فيه لعبة تنلعب الحين.');
@@ -272,7 +268,6 @@ client.on('messageCreate', async (message) => {
         });
     }
 
-    // لعبة الروليت
     if (content === 'روليت') {
         if (activeGames.has(guildId) || activeChannels.has(channelId)) {
             return message.reply('فيه لعبة تنلعب الحين.');
@@ -426,7 +421,6 @@ client.on('messageCreate', async (message) => {
     }
 });
 
-// خادم الويب لمنصة Render
 const http = require('http');
 const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
