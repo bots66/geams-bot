@@ -4,11 +4,12 @@ const {
     AttachmentBuilder 
 } = require('discord.js');
 const { createCanvas, GlobalFonts } = require('@napi-rs/canvas');
+const { ArabicReshaper } = require('arabic-persian-reshaper');
 const fs = require('fs');
 const https = require('https');
 const path = require('path');
 
-// تسجيل خط عربي يدعم اللغة العربية بشكل كامل لمنع ظهور المربعات
+// تحميل وتسجيل الخط العربي لمنع المربعات وتوفير مظهر احترافي
 const fontPath = path.join(__dirname, 'Cairo-Bold.ttf');
 if (!fs.existsSync(fontPath)) {
     const file = fs.createWriteStream(fontPath);
@@ -36,7 +37,7 @@ const activeGames = new Map();
 const activeChannels = new Set();
 
 const wordsList = [
-    "ضابط", "تفاحة", "سفينة", "طائرة", "سيارة", "قلم", "كتاب", "حاسوب", "هاتف", "طاولة", "كرسي",
+    "كاتب", "ضابط", "تفاحة", "سفينة", "طائرة", "سيارة", "قلم", "كتاب", "حاسوب", "هاتف", "طاولة", "كرسي",
     "شباك", "باب", "شمس", "قمر", "نجمة", "سحاب", "مطر", "بحر", "نهر", "جبل",
     "حاسب", "برمجية", "تطوير", "تقنية", "ذكاء", "اصطناعي", "سرعة", "لعبة", "تحدي", "فوز",
     "خوارزمية", "قاعدة", "بيانات", "شبكة", "تشفير", "حماية", "خادم", "اتصال", "تفاعل", "رسالة",
@@ -53,7 +54,7 @@ const wordsList = [
     "خبز", "جبن", "لحم", "دجاج", "سمك", "رز", "معكرونة", "شوربة", "سلطة", "فطور",
     "غداء", "عشاء", "حلوى", "كيك", "بسكويت", "شكولاته", "آيسكريم", "عسل", "مربى", "تمر",
     "طبيب", "مهندس", "معلم", "جندي", "طيار", "سائق", "تاجر", "صانع", "رسام",
-    "كاتب", "شاعر", "مغني", "لاعب", "حارس", "مدرب", "صيدلي", "ممرض", "محامي", "قاضي",
+    "شاعر", "مغني", "لاعب", "حارس", "مدرب", "صيدلي", "ممرض", "محامي", "قاضي",
     "مدرسة", "جامعة", "مستشفى", "مسجد", "ملعب", "حديقة", "سوق", "مطعم", "فندق", "مطار",
     "ميناء", "محطة", "متحف", "مسرح", "سينما", "شركة", "مصنع", "مكتب", "بنك",
     "طريق", "شارع", "جسر", "نفق", "إشارة", "رصيف", "مرآب", "ساحة", "دوار", "حي",
@@ -102,15 +103,15 @@ async function generateGameImage(word) {
         }
     }
 
-    // 1. المربع العلوي الأيمن
+    // 1. المربع العلوي الأيمن (أسرع من يكتب)
     drawRoundedRect(365, 25, 285, 55, 25, '#1a1d24', '#2b313d');
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 20px Cairo, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('أسرع بكتابة الكلمة', 507, 52);
+    ctx.fillText('أسرع من يكتب', 507, 52);
 
-    // 2. المربع العلوي الأيسر
+    // 2. المربع العلوي الأيسر (⚡ لديك 15 ثانية)
     drawRoundedRect(50, 25, 305, 55, 25, '#1a1d24', '#2b313d');
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 18px Cairo, sans-serif';
@@ -118,15 +119,17 @@ async function generateGameImage(word) {
     ctx.textBaseline = 'middle';
     ctx.fillText('⚡ لديك 15 ثانية', 202, 52);
 
-    // 3. المربع السفلي الكبير
+    // 3. المربع السفلي الكبير (الكلمة المستهدفة)
     drawRoundedRect(50, 105, 600, 180, 35, '#161920', '#3a4454');
 
-    // الكلمة المستهدفة باللون الأبيض وبخط عربي واضح وصحيح
+    // معالجة الكلمة لضمان اتصال الحروف وعدم تباعدها
+    const shapedWord = ArabicReshaper.convertArabic(word);
+
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 55px Cairo, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(word, 350, 195);
+    ctx.fillText(shapedWord, 350, 195);
 
     return canvas.toBuffer('image/png');
 }
@@ -183,7 +186,8 @@ client.on('messageCreate', async (message) => {
                     }
                     activeChannels.delete(channelId);
                     collector.stop('won');
-                    m.channel.send(`🏆 كفو! الفائز هو <@${m.author.id}> بكتبته للكلمة: **${randomWord}**`);
+                    // رسالة الفوز بدون زوائد (المنشن فقط)
+                    m.channel.send(`<@${m.author.id}>`);
                 }
             });
 
@@ -191,7 +195,8 @@ client.on('messageCreate', async (message) => {
                 if (reason !== 'won' && activeGames.has(guildId)) {
                     activeGames.delete(guildId);
                     activeChannels.delete(channelId);
-                    message.channel.send(`⏰ انتهى الوقت! الكلمة الصحيحة كانت: **${randomWord}**`);
+                    // رسالة انتهاء الوقت بدون زوائد
+                    message.channel.send('انتهى الوقت');
                 }
             });
 
