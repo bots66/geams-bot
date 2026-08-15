@@ -1,9 +1,12 @@
 const { 
     Client, 
     GatewayIntentBits, 
-    AttachmentBuilder 
+    AttachmentBuilder, 
+    ActionRowBuilder, 
+    ButtonBuilder, 
+    ButtonStyle 
 } = require('discord.js');
-const { createCanvas, GlobalFonts } = require('@napi-rs/canvas');
+const { createCanvas, loadImage, GlobalFonts } = require('@napi-rs/canvas');
 const http = require('http');
 
 const client = new Client({
@@ -179,7 +182,6 @@ async function generateFlagGameImage(flagObj) {
 
     const flagUrl = `https://flagcdn.com/w320/${flagObj.code}.png`;
     try {
-        const { loadImage } = require('@napi-rs/canvas');
         const img = await loadImage(flagUrl);
         ctx.save();
         ctx.beginPath();
@@ -190,6 +192,78 @@ async function generateFlagGameImage(flagObj) {
     } catch (e) {
         console.error("خطأ في تحميل صورة العلم:", e);
     }
+
+    return canvas.toBuffer('image/png');
+}
+
+async function generateRouletteLobbyImage(count) {
+    const canvas = createCanvas(1000, 560);
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = '#e8e8e8';
+    ctx.beginPath();
+    ctx.roundRect(100, 150, 800, 260, 40);
+    ctx.fill();
+
+    ctx.fillStyle = '#111111';
+    ctx.font = 'bold 45px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('روليت', 500, 280);
+
+    ctx.fillStyle = '#111111';
+    ctx.font = 'bold 30px sans-serif';
+    ctx.fillText(`${count}/20`, 500, 345);
+
+    return canvas.toBuffer('image/png');
+}
+
+async function generateRouletteWheelImage(avatarUrl, username) {
+    const canvas = createCanvas(1000, 560);
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = '#e8e8e8';
+    ctx.beginPath();
+    ctx.roundRect(100, 100, 800, 360, 40);
+    ctx.fill();
+
+    // دائرة الأفاتار في المنتصف
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(500, 250, 90, 0, Math.PI * 2, true);
+    ctx.closePath();
+    ctx.clip();
+    try {
+        const avatarImg = await loadImage(avatarUrl);
+        ctx.drawImage(avatarImg, 410, 160, 180, 180);
+    } catch (e) {
+        ctx.fillStyle = '#cccccc';
+        ctx.fillRect(410, 160, 180, 180);
+    }
+    ctx.restore();
+
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.arc(500, 250, 90, 0, Math.PI * 2, true);
+    ctx.stroke();
+
+    // مستطيل اليوزر تحت
+    ctx.fillStyle = '#f8f8f8';
+    ctx.beginPath();
+    ctx.roundRect(320, 380, 360, 55, 25);
+    ctx.fill();
+    ctx.strokeStyle = '#dddddd';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.fillStyle = '#111111';
+    ctx.font = 'bold 22px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(username, 500, 408);
 
     return canvas.toBuffer('image/png');
 }
@@ -219,6 +293,7 @@ client.on('messageCreate', async (message) => {
 
         const game = activeGames.get(guildId);
         if (game.collector) game.collector.stop();
+        if (game.timeoutTimer) clearTimeout(game.timeoutTimer);
         activeGames.delete(guildId);
         activeChannels.delete(channelId);
         
@@ -226,6 +301,84 @@ client.on('messageCreate', async (message) => {
             await message.react('✅');
         } catch (e) {}
         return;
+    }
+
+    if (content === 'روليت') {
+        if (!message.member.roles.cache.has(allowedRoleId)) {
+            return;
+        }
+
+        if (activeGames.has(guildId) || activeChannels.has(channelId)) {
+            return message.reply('في لعبة جالس تنلعب');
+        }
+
+        activeChannels.add(channelId);
+        let participants = [];
+
+        const lobbyBuffer = await generateRouletteLobbyImage(0);
+        const lobbyAttachment = new AttachmentBuilder(lobbyBuffer, { name: 'roulette_lobby.png' });
+
+        const row = new ActionRowBuilder().addComponents(
+            new ButtonBuilder().setCustomId('r_join').setLabel('انضمام').setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder().setCustomId('r_leave').setLabel('انسحاب').setStyle(ButtonStyle.Secondary)
+        );
+
+        const lobbyMessage = await message.channel.send({
+            content: '@here',
+            files: [lobbyAttachment],
+            components: [row]
+        });
+
+        const gameData = {
+            type: 'roulette_lobby',
+            participants,
+            lobbyMessage,
+            timeoutTimer: setTimeout(async () => {
+                startRouletteGame(message.channel, guildId, channelId, participants, lobbyMessage);
+            }, 30000)
+        };
+
+        activeGames.set(guildId, gameData);
+
+        const collector = lobbyMessage.createMessageComponentCollector({ time: 30000 });
+        gameData.collector = collector;
+
+        collector.on('collect', async (interaction) => {
+            const userId = interaction.user.id;
+            const userObj = interaction.user;
+
+            if (interaction.customId === 'r_join') {
+                if (participants.some(p => p.id === userId)) {
+                    return interaction.reply({ content: 'انت بالفعل داخل اللعبة', ephemeral: true });
+                }
+                if (participants.length >= 20) {
+                    return interaction.reply({ content: 'اكتمل العدد (20/20)', ephemeral: true });
+                }
+                participants.push(userObj);
+                await interaction.reply({ content: 'تم الانضمام', ephemeral: true });
+
+                const updatedBuffer = await generateRouletteLobbyImage(participants.length);
+                const updatedAttachment = new AttachmentBuilder(updatedBuffer, { name: 'roulette_lobby.png' });
+                await lobbyMessage.edit({ files: [updatedAttachment], components: [row] }).catch(() => {});
+
+                if (participants.length === 20) {
+                    clearTimeout(gameData.timeoutTimer);
+                    collector.stop();
+                    startRouletteGame(message.channel, guildId, channelId, participants, lobbyMessage);
+                }
+            } else if (interaction.customId === 'r_leave') {
+                const index = participants.findIndex(p => p.id === userId);
+                if (index === -1) {
+                    return interaction.reply({ content: 'انت بالفعل خارج اللعبة', ephemeral: true });
+                }
+                participants.splice(index, 1);
+                await interaction.reply({ content: 'تم الانسحاب', ephemeral: true });
+
+                const updatedBuffer = await generateRouletteLobbyImage(participants.length);
+                const updatedAttachment = new AttachmentBuilder(updatedBuffer, { name: 'roulette_lobby.png' });
+                await lobbyMessage.edit({ files: [updatedAttachment], components: [row] }).catch(() => {});
+            }
+        });
     }
 
     if (content === 'أسرع' || content === 'اسرع') {
@@ -316,6 +469,130 @@ client.on('messageCreate', async (message) => {
         }
     }
 });
+
+async function startRouletteGame(channel, guildId, channelId, participants, lobbyMessage) {
+    if (participants.length < 3) {
+        activeGames.delete(guildId);
+        activeChannels.delete(channelId);
+        await lobbyMessage.delete().catch(() => {});
+        return channel.send('العدد غير مكتمل لكي تبدأ اللعبة');
+    }
+
+    await lobbyMessage.delete().catch(() => {});
+    runRouletteRound(channel, guildId, channelId, participants);
+}
+
+async function runRouletteRound(channel, guildId, channelId, participants) {
+    if (participants.length === 1) {
+        const winner = participants[0];
+        activeGames.delete(guildId);
+        activeChannels.delete(channelId);
+        const finalBuffer = await generateRouletteWheelImage(winner.displayAvatarURL({ extension: 'png' }), winner.username);
+        const finalAttachment = new AttachmentBuilder(finalBuffer, { name: 'roulette_win.png' });
+        return channel.send({ content: `فاز باللعبة <@${winner.id}> 🎉`, files: [finalAttachment] });
+    }
+
+    // اختيار شخص عشوائي للوقوف عنده بعد اللفات
+    const targetPlayer = participants[Math.floor(Math.random() * participants.length)];
+    const avatarUrl = targetPlayer.displayAvatarURL({ extension: 'png' });
+    const username = targetPlayer.username;
+
+    const wheelBuffer = await generateRouletteWheelImage(avatarUrl, username);
+    const wheelAttachment = new AttachmentBuilder(wheelBuffer, { name: 'roulette_wheel.png' });
+
+    // بناء الأزرار للاعبة
+    let rows = [];
+    let currentRow = new ActionRowBuilder();
+    
+    participants.forEach((p, index) => {
+        if (currentRow.components.length >= 5) {
+            rows.push(currentRow);
+            currentRow = new ActionRowBuilder();
+        }
+        currentRow.addComponents(
+            new ButtonBuilder()
+                .setCustomId(`kick_${p.id}`)
+                .setLabel(p.username.substring(0, 20))
+                .setStyle(ButtonStyle.Secondary)
+        );
+    });
+
+    if (currentRow.components.length > 0) {
+        rows.push(currentRow);
+    }
+
+    // زر عشوائي
+    const randomRow = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId('kick_random')
+            .setLabel('عشوائي')
+            .setStyle(ButtonStyle.Danger)
+    );
+    rows.push(randomRow);
+
+    const gameMessage = await channel.send({
+        files: [wheelAttachment],
+        components: rows
+    });
+
+    const collector = gameMessage.createMessageComponentCollector({ time: 20000 });
+
+    collector.on('collect', async (interaction) => {
+        let kickedUser = null;
+
+        if (interaction.customId === 'kick_random') {
+            kickedUser = participants[Math.floor(Math.random() * participants.length)];
+        } else if (interaction.customId.startsWith('kick_')) {
+            const kickedId = interaction.customId.replace('kick_', '');
+            kickedUser = participants.find(p => p.id === kickedId);
+        }
+
+        if (kickedUser) {
+            participants = participants.filter(p => p.id !== kickedUser.id);
+            collector.stop();
+            await gameMessage.delete().catch(() => {});
+            await channel.send(`تم طرد <@${kickedUser.id}>`);
+
+            if (participants.length === 1) {
+                const finalWinner = participants[0];
+                activeGames.delete(guildId);
+                activeChannels.delete(channelId);
+                const winBuffer = await generateRouletteWheelImage(finalWinner.displayAvatarURL({ extension: 'png' }), finalWinner.username);
+                const winAttachment = new AttachmentBuilder(winBuffer, { name: 'roulette_win.png' });
+                return channel.send({ content: `فاز باللعبة <@${finalWinner.id}> 🎉`, files: [winAttachment] });
+            }
+
+            // الجولة التالية مباشرة
+            setTimeout(() => {
+                runRouletteRound(channel, guildId, channelId, participants);
+            }, 1000);
+        }
+    });
+
+    collector.on('end', (collected, reason) => {
+        if (reason === 'time') {
+            gameMessage.delete().catch(() => {});
+            // إذا انتهى الوقت بدون اختيار، نطرد الشخص الذي وقف عنده السهم تلقائياً أو نستمر
+            participants = participants.filter(p => p.id !== targetPlayer.id);
+            channel.send(`انتهى الوقت، تم طرد <@${targetPlayer.id}> تلقائياً.`);
+
+            if (participants.length === 1) {
+                const finalWinner = participants[0];
+                activeGames.delete(guildId);
+                activeChannels.delete(channelId);
+                generateRouletteWheelImage(finalWinner.displayAvatarURL({ extension: 'png' }), finalWinner.username).then(winBuffer => {
+                    const winAttachment = new AttachmentBuilder(winBuffer, { name: 'roulette_win.png' });
+                    channel.send({ content: `فاز باللعبة <@${finalWinner.id}> 🎉`, files: [winAttachment] });
+                });
+                return;
+            }
+
+            setTimeout(() => {
+                runRouletteRound(channel, guildId, channelId, participants);
+            }, 1000);
+        }
+    });
+}
 
 const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
