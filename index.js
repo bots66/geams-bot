@@ -3,31 +3,8 @@ const {
     GatewayIntentBits, 
     AttachmentBuilder 
 } = require('discord.js');
-const { createCanvas, GlobalFonts, loadImage } = require('@napi-rs/canvas');
-const fs = require('fs');
-const https = https = require('https');
-const path = require('path');
-
-const fontPath = path.join(__dirname, 'Cairo-Bold.ttf');
-
-function loadFont() {
-    return new Promise((resolve) => {
-        if (fs.existsSync(fontPath)) {
-            GlobalFonts.registerFromPath(fontPath, 'Cairo');
-            resolve();
-        } else {
-            const file = fs.createWriteStream(fontPath);
-            https.get("https://github.com/google/fonts/raw/main/ofl/cairo/Cairo-Bold.ttf", (response) => {
-                response.pipe(file);
-                file.on('finish', () => {
-                    file.close();
-                    GlobalFonts.registerFromPath(fontPath, 'Cairo');
-                    resolve();
-                });
-            });
-        }
-    });
-}
+const { createCanvas, GlobalFonts } = require('@napi-rs/canvas');
+const http = require('http');
 
 const client = new Client({
     intents: [
@@ -42,7 +19,6 @@ const activeGames = new Map();
 const activeChannels = new Set();
 const allowedRoleId = '1537723053318864927';
 
-// قائمة الكلمات للعبة أسرع من يكتب (أكثر من 400 كلمة)
 const wordsList = [
     "شمس", "قمر", "نجمة", "سماء", "سحاب", "مطر", "برق", "رعد", "عاصفة", "رياح",
     "بحر", "نهر", "بحيرة", "محيط", "شاطئ", "موج", "جبل", "تل", "وادي", "صحراء",
@@ -149,26 +125,23 @@ async function generateGameImage(word) {
         if (strokeColor) { ctx.strokeStyle = strokeColor; ctx.lineWidth = 3; ctx.stroke(); }
     }
 
-    // المربع الأيسر للمؤقت
     drawRoundedRect(50, 25, 305, 55, 25, '#1a1d24', '#2b313d');
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 18px Cairo, sans-serif';
+    ctx.font = 'bold 18px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('معك 15 ثانية', 202, 52);
 
-    // المربع الأيمن للعنوان
     drawRoundedRect(365, 25, 285, 55, 25, '#1a1d24', '#2b313d');
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 20px Cairo, sans-serif';
+    ctx.font = 'bold 20px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('أسرع من يكتب ؟', 507, 52);
 
-    // المربع السفلي للكلمة
     drawRoundedRect(50, 105, 600, 180, 35, '#161920', '#3a4454');
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 55px Cairo, sans-serif';
+    ctx.font = 'bold 50px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(word, 350, 195);
@@ -188,27 +161,25 @@ async function generateFlagGameImage(flagObj) {
         if (strokeColor) { ctx.strokeStyle = strokeColor; ctx.lineWidth = 3; ctx.stroke(); }
     }
 
-    // المربع الأيسر للمؤقت
     drawRoundedRect(50, 25, 305, 55, 25, '#1a1d24', '#2b313d');
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 18px Cairo, sans-serif';
+    ctx.font = 'bold 18px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('معك 15 ثانية', 202, 52);
 
-    // المربع الأيمن للعنوان
     drawRoundedRect(365, 25, 285, 55, 25, '#1a1d24', '#2b313d');
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 20px Cairo, sans-serif';
+    ctx.font = 'bold 20px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('علم أي دولة ؟', 507, 52);
 
-    // المربع السفلي الكبير للعلم
     drawRoundedRect(50, 100, 600, 195, 30, '#161920', '#3a4454');
 
     const flagUrl = `https://flagcdn.com/w320/${flagObj.code}.png`;
     try {
+        const { loadImage } = require('@napi-rs/canvas');
         const img = await loadImage(flagUrl);
         ctx.save();
         ctx.beginPath();
@@ -346,7 +317,6 @@ client.on('messageCreate', async (message) => {
     }
 });
 
-const http = require('http');
 const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
     res.end('Bot is running!');
@@ -357,6 +327,4 @@ server.listen(PORT, () => {
     console.log(`Server is listening on port ${PORT}`);
 });
 
-loadFont().then(() => {
-    client.login(process.env.TOKEN);
-});
+client.login(process.env.TOKEN);
