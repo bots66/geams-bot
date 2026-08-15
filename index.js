@@ -182,7 +182,6 @@ async function generateFlagGameImage(flagObj) {
     return canvas.toBuffer('image/png');
 }
 
-// دالة توليد صورة الفائز النهائية الثابتة
 async function generateWinnerWheelImage(participants, targetUser) {
     const canvas = createCanvas(600, 600);
     const ctx = canvas.getContext('2d');
@@ -271,7 +270,7 @@ async function generateWinnerWheelImage(participants, targetUser) {
     return canvas.toBuffer('image/png');
 }
 
-// دالة إنشاء ملف الـ GIF بحيث تكون العجلة والأسماء ثابتة والسهم يدور فقط ثم يقف عند الفائز المستهدف
+// دالة إنشاء ملف الـ GIF (سهم أسود، دوران سريع ثم تباطؤ تدريجي)
 async function generateRouletteWheelGif(participants, targetPlayer) {
     const width = 600;
     const height = 600;
@@ -284,7 +283,6 @@ async function generateRouletteWheelGif(participants, targetPlayer) {
     encoder.setDelay(50);
     encoder.setQuality(10);
 
-    // تجهيز العجلة الثابتة في الخلفية (Base Canvas) لعدم إعادة رسمها في كل إطار
     const baseCanvas = createCanvas(width, height);
     const bCtx = baseCanvas.getContext('2d');
 
@@ -348,23 +346,21 @@ async function generateRouletteWheelGif(participants, targetPlayer) {
     bCtx.lineWidth = 6;
     bCtx.stroke();
 
-    // حساب زاوية التوقف بدقة ليقف السهم عند مكان اللاعب المستهدف
     const targetIndex = participants.findIndex(p => p.id === targetPlayer.id);
     const targetSectorCenter = targetIndex * angleStep + angleStep / 2 - Math.PI / 2;
-    const totalSpins = 5; // عدد اللفات الكاملة
+    const totalSpins = 6; // زيادة اللفات لإعطاء وقت للحركة السريعة والتباطؤ
     const finalAngle = (Math.PI * 2 * totalSpins) + targetSectorCenter;
-    const totalFrames = 30;
+    const totalFrames = 40; // زيادة عدد الإطارات لتنعيم حركة التباطؤ التدريجي
 
     for (let frame = 0; frame < totalFrames; frame++) {
         const progress = frame / (totalFrames - 1);
+        // دالة تباطؤ (Ease Out Cubic) تبدأ سريعة وتهدي ببطء شديد حتى تتوقف
         const easedProgress = 1 - Math.pow(1 - progress, 3);
         const currentAngle = finalAngle * easedProgress;
 
         ctx.clearRect(0, 0, width, height);
-        // رسم العجلة الثابتة
         ctx.drawImage(baseCanvas, 0, 0);
 
-        // رسم السهم المتحرك فقط على الحافة
         ctx.save();
         ctx.translate(centerX, centerY);
         ctx.rotate(currentAngle);
@@ -374,9 +370,9 @@ async function generateRouletteWheelGif(participants, targetPlayer) {
         ctx.lineTo(radius + 15, -10);
         ctx.lineTo(radius + 15, 10);
         ctx.closePath();
-        ctx.fillStyle = '#ff3b30';
+        ctx.fillStyle = '#000000'; // تم تغيير لون السهم إلى الأسود
         ctx.fill();
-        ctx.strokeStyle = '#000000';
+        ctx.strokeStyle = '#333333';
         ctx.lineWidth = 2;
         ctx.stroke();
 
@@ -627,11 +623,9 @@ async function runRouletteRound(channel, guildId, channelId, participants) {
 
     const targetPlayer = participants[Math.floor(Math.random() * participants.length)];
     
-    // توليد وإرسال صورة السهم المتحرك (GIF)
     const gifBuffer = await generateRouletteWheelGif(participants, targetPlayer);
     const gifAttachment = new AttachmentBuilder(gifBuffer, { name: 'roulette_wheel.gif' });
 
-    // تجهيز الأزرار مع استثناء الشخص الواقف عليه
     let rows = [];
     let currentRow = new ActionRowBuilder();
     
@@ -667,6 +661,7 @@ async function runRouletteRound(channel, guildId, channelId, participants) {
     );
     rows.push(bottomRow);
 
+    // إرسال الصورة المتحركة مع الأزرار فوراً مع بداية الدوران
     const wheelMessage = await channel.send({
         content: `<@!${targetPlayer.id}> , لديك **15 ثانية** لاختيار لاعب لطرده 🦵`,
         files: [gifAttachment],
