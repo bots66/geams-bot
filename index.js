@@ -17,7 +17,7 @@ const client = new Client({
 const activeGames = new Map();
 const activeChannels = new Set();
 
-// قائمة الكلمات (مكتوبة بشكل متصل وصحيح مباشرة)
+// قائمة الكلمات
 const wordsList = [
     "ضابط", "تفاحة", "سفينة", "طائرة", "سيارة", "قلم", "كتاب", "حاسوب", "هاتف", "طاولة", "كرسي",
     "شباك", "باب", "شمس", "قمر", "نجمة", "سحاب", "مطر", "بحر", "نهر", "جبل",
@@ -65,13 +65,12 @@ function normalizeText(text) {
         .replace(/ى/g, 'ي');
 }
 
-// دالة رسم التصميم المطلوب بالصناديق المنفصلة
 async function generateGameImage(word) {
     const canvas = createCanvas(700, 320);
     const ctx = canvas.getContext('2d');
 
-    ctx.fillStyle = '#0f1115';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // جعل الخلفية الخارجية شفافة تماماً (بدون أي لون خلفية)
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     function drawRoundedRect(x, y, width, height, radius, fillColor, strokeColor) {
         ctx.beginPath();
@@ -106,8 +105,8 @@ async function generateGameImage(word) {
     // 3. المربع السفلي الكبير (الكلمة المستهدفة)
     drawRoundedRect(50, 105, 600, 180, 35, '#161920', '#3a4454');
 
-    // طباعة الكلمة بوضوح
-    ctx.fillStyle = '#5865F2';
+    // جعل الكلمة المستهدفة بلون أبيض مثل باقي النصوص العلوية
+    ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 55px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
