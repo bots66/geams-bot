@@ -1,13 +1,13 @@
 {
   "name": "fast-game-bot",
   "version": "1.0.0",
-  "description": "Discord Fast Typing Game Bot using Jimp",
+  "description": "Discord Fast Typing Game Bot using Canvas",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
     "discord.js": "^14.14.0",
-    "jimp": "^0.22.12"
+    "@napi-rs/canvas": "^0.1.48"
   }
 }
