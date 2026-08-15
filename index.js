@@ -4,6 +4,7 @@ const {
     AttachmentBuilder 
 } = require('discord.js');
 const { createCanvas } = require('@napi-rs/canvas');
+const { ArabicReshaper } = require('arabic-persian-reshaper');
 
 const client = new Client({
     intents: [
@@ -19,7 +20,7 @@ const activeChannels = new Set();
 
 // قائمة الكلمات (أكثر من 300 كلمة لمنع التكرار)
 const wordsList = [
-    "تفاحة", "سفينة", "طائرة", "سيارة", "قلم", "كتاب", "حاسوب", "هاتف", "طاولة", "كرسي",
+    "ضابط", "تفاحة", "سفينة", "طائرة", "سيارة", "قلم", "كتاب", "حاسوب", "هاتف", "طاولة", "كرسي",
     "شباك", "باب", "شمس", "قمر", "نجمة", "سحاب", "مطر", "بحر", "نهر", "جبل",
     "حاسب", "برمجية", "تطوير", "تقنية", "ذكاء", "اصطناعي", "سرعة", "لعبة", "تحدي", "فوز",
     "خوارزمية", "قاعدة", "بيانات", "شبكة", "تشفير", "حماية", "خادم", "اتصال", "تفاعل", "رسالة",
@@ -35,7 +36,7 @@ const wordsList = [
     "قهوة", "شاي", "حليب", "ماء", "عصير", "سكر", "ملح", "بهارات", "زيت", "زبدة",
     "خبز", "جبن", "لحم", "دجاج", "سمك", "رز", "معكرونة", "شوربة", "سلطة", "فطور",
     "غداء", "عشاء", "حلوى", "كيك", "بسكويت", "شكولاته", "آيسكريم", "عسل", "مربى", "تمر",
-    "طبيب", "مهندس", "معلم", "ضابط", "جندي", "طيار", "سائق", "تاجر", "صانع", "رسام",
+    "طبيب", "مهندس", "معلم", "جندي", "طيار", "سائق", "تاجر", "صانع", "رسام",
     "كاتب", "شاعر", "مغني", "لاعب", "حارس", "مدرب", "صيدلي", "ممرض", "محامي", "قاضي",
     "مدرسة", "جامعة", "مستشفى", "مسجد", "ملعب", "حديقة", "سوق", "مطعم", "فندق", "مطار",
     "ميناء", "محطة", "متحف", "مسرح", "سينما", "شركة", "مصنع", "مكتب", "بنك",
@@ -65,11 +66,12 @@ function normalizeText(text) {
         .replace(/ى/g, 'ي');
 }
 
-// دالة رسم الأشكال والدوائر برمجياً
+// دالة رسم الصورة بالتصميم الجديد والمقسوم للأعلى
 async function generateGameImage(word) {
     const canvas = createCanvas(700, 320);
     const ctx = canvas.getContext('2d');
 
+    // الخلفية الداكنة
     ctx.fillStyle = '#0f1115';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -87,24 +89,33 @@ async function generateGameImage(word) {
         }
     }
 
-    // المربع العلوي المنحنى
-    drawRoundedRect(50, 25, 600, 60, 30, '#1a1d24', '#2b313d');
-    
+    // 1. المربع العلوي الأيمن (خاص بـ: أسرع بكتابة الكلمة)
+    drawRoundedRect(365, 25, 285, 55, 25, '#1a1d24', '#2b313d');
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 22px sans-serif';
+    ctx.font = 'bold 20px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('⚡ أسرع بكتابة الكلمة (لديك 15 ثانية)', 350, 55);
+    ctx.fillText('أسرع بكتابة الكلمة', 507, 52);
 
-    // المربع السفلي المنحنى
-    drawRoundedRect(50, 110, 600, 170, 35, '#161920', '#3a4454');
+    // 2. المربع العلوي الأيسر (خاص بالوقت وعلامة البرق: ⚡ لديك 15 ثانية)
+    drawRoundedRect(50, 25, 305, 55, 25, '#1a1d24', '#2b313d');
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 18px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('⚡ لديك 15 ثانية', 202, 52);
 
-    // كتابة الكلمة في المنتصف
-    ctx.fillStyle = '#5865F2';
+    // 3. المربع السفلي الكبير (الخاص بالكلمة المستهدفة)
+    drawRoundedRect(50, 105, 600, 180, 35, '#161920', '#3a4454');
+
+    // معالجة وربط الحروف العربية لتتصل ببعضها بدون مسافات وبنفس اللون المطلوب
+    const shapedWord = ArabicReshaper.convertArabic(word);
+    
+    ctx.fillStyle = '#5865F2'; // نفس اللون السابق
     ctx.font = 'bold 55px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(word, 350, 195);
+    ctx.fillText(shapedWord, 350, 195);
 
     return canvas.toBuffer('image/png');
 }
@@ -161,7 +172,6 @@ client.on('messageCreate', async (message) => {
                     }
                     activeChannels.delete(channelId);
                     collector.stop('won');
-                    // تم تصحيح الخطأ هنا بإزالة الرمز الزائد
                     m.channel.send(`🏆 كفو! الفائز هو <@${m.author.id}> بكتبته للكلمة: **${randomWord}**`);
                 }
             });
