@@ -181,7 +181,7 @@ async function generateFlagGameImage(flagObj) {
     return canvas.toBuffer('image/png');
 }
 
-async function generateRouletteWheelImage(participants, targetUser, rotationAngle = 0) {
+async function generateRouletteWheelImage(participants, targetUser, rotationAngle = 0, arrowAngle = 0) {
     const canvas = createCanvas(600, 600);
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -206,7 +206,7 @@ async function generateRouletteWheelImage(participants, targetUser, rotationAngl
         ctx.arc(centerX, centerY, radius, startAngle, endAngle);
         ctx.closePath();
 
-        ctx.fillStyle = i % 2 === 0 ? '#eeeeee' : '#e0e0e0';
+        ctx.fillStyle = i % 2 === 0 ? '#ffffff' : '#f0f0f0';
         ctx.fill();
         ctx.strokeStyle = '#000000';
         ctx.lineWidth = 4;
@@ -230,15 +230,21 @@ async function generateRouletteWheelImage(participants, targetUser, rotationAngl
 
     ctx.restore();
 
-    // السهم الأسود على اليمين
+    // السهم المتحرك على الجانب الأيمن يدور بسلاسة
+    ctx.save();
+    ctx.translate(centerX, centerY);
+    ctx.rotate(arrowAngle);
+    ctx.translate(-centerX, -centerY);
+
     ctx.beginPath();
     ctx.moveTo(canvas.width - 15, centerY - 15);
     ctx.lineTo(canvas.width - 3, centerY);
     ctx.lineTo(canvas.width - 15, centerY + 15);
     ctx.fillStyle = '#000000';
     ctx.fill();
+    ctx.restore();
 
-    // دائرة الأفاتار في المنتصف
+    // دائرة الأفاتار والاسم في المنتصف للفائز الحالي
     const avatarRadius = 75;
     ctx.save();
     ctx.beginPath();
@@ -287,7 +293,7 @@ client.on('messageCreate', async (message) => {
 
         const game = activeGames.get(guildId);
         if (game.collector) game.collector.stop();
-        if (game.timeoutTimer) clearTimeout(game.timeoutTimer);
+        if (game.countdownInterval) clearInterval(game.countdownInterval);
         activeGames.delete(guildId);
         activeChannels.delete(channelId);
         
@@ -306,6 +312,7 @@ client.on('messageCreate', async (message) => {
 
         activeChannels.add(channelId);
         let participants = [];
+        let timeLeft = 30;
 
         const row = new ActionRowBuilder().addComponents(
             new ButtonBuilder().setCustomId('r_join').setLabel('انضمام').setStyle(ButtonStyle.Secondary),
@@ -313,16 +320,30 @@ client.on('messageCreate', async (message) => {
         );
 
         const lobbyMessage = await message.channel.send({
-            content: `@here\n0/20`,
+            content: `@here\n0/21\nمتبقي لبداية اللعبة: ${timeLeft} ثانية`,
             files: [rouletteLobbyImageUrl],
             components: [row]
         });
+
+        const countdownInterval = setInterval(async () => {
+            timeLeft--;
+            if (timeLeft <= 0) {
+                clearInterval(countdownInterval);
+                return;
+            }
+            await lobbyMessage.edit({
+                content: `@here\n${participants.length}/21\nمتبقي لبداية اللعبة: ${timeLeft} ثانية`,
+                components: [row]
+            }).catch(() => {});
+        }, 1000);
 
         const gameData = {
             type: 'roulette_lobby',
             participants,
             lobbyMessage,
+            countdownInterval,
             timeoutTimer: setTimeout(async () => {
+                clearInterval(countdownInterval);
                 if (participants.length < 3) {
                     activeGames.delete(guildId);
                     activeChannels.delete(channelId);
@@ -345,20 +366,20 @@ client.on('messageCreate', async (message) => {
                 if (participants.some(p => p.id === userId)) {
                     return interaction.reply({ content: 'انت بالفعل داخل اللعبة', ephemeral: true });
                 }
-                if (participants.length >= 20) {
-                    return interaction.reply({ content: 'اكتمل العدد (20/20)', ephemeral: true });
+                if (participants.length >= 21) {
+                    return interaction.reply({ content: 'اكتمل العدد (21/21)', ephemeral: true });
                 }
                 participants.push(userObj);
                 await interaction.reply({ content: 'تم الانضمام', ephemeral: true });
 
-                // تعديل النص فقط بدون تحديث مرفق الصورة لمنع الوميض والاسوداد
                 await lobbyMessage.edit({ 
-                    content: `@here\n${participants.length}/20`, 
+                    content: `@here\n${participants.length}/21\nمتبقي لبداية اللعبة: ${timeLeft} ثانية`, 
                     components: [row] 
                 }).catch(() => {});
 
-                if (participants.length === 20) {
+                if (participants.length === 21) {
                     clearTimeout(gameData.timeoutTimer);
+                    clearInterval(countdownInterval);
                     collector.stop();
                     startRouletteGame(message.channel, guildId, channelId, participants);
                 }
@@ -371,7 +392,7 @@ client.on('messageCreate', async (message) => {
                 await interaction.reply({ content: 'تم الانسحاب', ephemeral: true });
 
                 await lobbyMessage.edit({ 
-                    content: `@here\n${participants.length}/20`, 
+                    content: `@here\n${participants.length}/21\nمتبقي لبداية اللعبة: ${timeLeft} ثانية`, 
                     components: [row] 
                 }).catch(() => {});
             }
@@ -475,30 +496,33 @@ async function startRouletteGame(channel, guildId, channelId, participants) {
 }
 
 async function runRouletteRound(channel, guildId, channelId, participants) {
+    // إذا بقي آخر شخصين، يتم اختيار أحدهما مباشرة وتحديد الفائز بالصورة
     if (participants.length === 2) {
         const targetPlayer = participants[Math.floor(Math.random() * participants.length)];
         const winner = participants.filter(p => p.id !== targetPlayer.id)[0];
         activeGames.delete(guildId);
         activeChannels.delete(channelId);
 
-        const winBuffer = await generateRouletteWheelImage([winner], winner, 0);
+        const winBuffer = await generateRouletteWheelImage([winner], winner, 0, 0);
         const winAttachment = new AttachmentBuilder(winBuffer, { name: 'roulette_win.png' });
         return channel.send({ content: `@here\n${winner.username}`, files: [winAttachment] });
     }
 
     const targetPlayer = participants[Math.floor(Math.random() * participants.length)];
     
-    // محاكاة حركة الدوران التدريجية للعجلة
     let currentAngle = 0;
-    const initialWheelBuffer = await generateRouletteWheelImage(participants, targetPlayer, currentAngle);
+    let arrowAngle = 0;
+    const initialWheelBuffer = await generateRouletteWheelImage(participants, targetPlayer, currentAngle, arrowAngle);
     const wheelMessage = await channel.send({
         files: [new AttachmentBuilder(initialWheelBuffer, { name: 'roulette_wheel.png' })]
     });
 
-    for (let step = 0; step < 5; step++) {
-        await new Promise(r => setTimeout(r, 300));
-        currentAngle += Math.PI / 3;
-        const rotatedBuffer = await generateRouletteWheelImage(participants, targetPlayer, currentAngle);
+    // دوران سلس للسهم والعجلة بدلاً من القفز بين الأدوار
+    for (let step = 0; step < 8; step++) {
+        await new Promise(r => setTimeout(r, 200));
+        currentAngle += Math.PI / 6;
+        arrowAngle += Math.PI / 4;
+        const rotatedBuffer = await generateRouletteWheelImage(participants, targetPlayer, currentAngle, arrowAngle);
         await wheelMessage.edit({
             files: [new AttachmentBuilder(rotatedBuffer, { name: 'roulette_wheel.png' })]
         }).catch(() => {});
