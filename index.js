@@ -17,7 +17,7 @@ const client = new Client({
 const activeGames = new Map();
 const activeChannels = new Set();
 
-// قائمة ضخمة تضم أكثر من 300 كلمة لمنع التكرار
+// قائمة الكلمات (أكثر من 300 كلمة لمنع التكرار)
 const wordsList = [
     "تفاحة", "سفينة", "طائرة", "سيارة", "قلم", "كتاب", "حاسوب", "هاتف", "طاولة", "كرسي",
     "شباك", "باب", "شمس", "قمر", "نجمة", "سحاب", "مطر", "بحر", "نهر", "جبل",
@@ -65,16 +65,14 @@ function normalizeText(text) {
         .replace(/ى/g, 'ي');
 }
 
-// دالة لرسم الأشكال المنحنية والدوائر تماماً مثل التصميم المطلوب
+// دالة رسم الأشكال والدوائر برمجياً
 async function generateGameImage(word) {
     const canvas = createCanvas(700, 320);
     const ctx = canvas.getContext('2d');
 
-    // 1. خلفية اللعبة الداكنة الأنيقة
     ctx.fillStyle = '#0f1115';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // دالة مساعدة لرسم مربعات بدوائر منحنبة (Rounded Rectangles / Pills)
     function drawRoundedRect(x, y, width, height, radius, fillColor, strokeColor) {
         ctx.beginPath();
         ctx.roundRect(x, y, width, height, radius);
@@ -89,21 +87,20 @@ async function generateGameImage(word) {
         }
     }
 
-    // 2. المربع العلوي المنحنى (مكان العنوان والتنبيه)
+    // المربع العلوي المنحنى
     drawRoundedRect(50, 25, 600, 60, 30, '#1a1d24', '#2b313d');
     
-    // نص العنوان العلوي داخل المربع المنحنى
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 22px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('⚡ أسرع بكتابة الكلمة (لديك 15 ثانية)', 350, 55);
 
-    // 3. المربع السفلي الكبير المنحنى (صندوق عرض الكلمة)
+    // المربع السفلي المنحنى
     drawRoundedRect(50, 110, 600, 170, 35, '#161920', '#3a4454');
 
-    // 4. كتابة الكلمة المستهدفة بوضوح تام في المنتصف داخل المربع السفلي
-    ctx.fillStyle = '#5865F2'; // لون مميز للكلمة
+    // كتابة الكلمة في المنتصف
+    ctx.fillStyle = '#5865F2';
     ctx.font = 'bold 55px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -141,15 +138,12 @@ client.on('messageCreate', async (message) => {
 
         activeChannels.add(channelId);
         
-        // اختيار كلمة عشوائية من القائمة (أكثر من 300 كلمة بدون تكرار)
         const randomWord = wordsList[Math.floor(Math.random() * wordsList.length)];
 
         try {
-            // رسم الصورة بالكامل مع الأشكال الدائرية والكلمة بداخله
             const buffer = await generateGameImage(randomWord);
             const attachment = new AttachmentBuilder(buffer, { name: 'fast_game.png' });
 
-            // إرسال الصورة مباشرة **بدون أي كلام أو إيمبد فوقها** كما طلبت تماماً
             await message.channel.send({ 
                 files: [attachment] 
             });
@@ -167,7 +161,8 @@ client.on('messageCreate', async (message) => {
                     }
                     activeChannels.delete(channelId);
                     collector.stop('won');
-                    m.channel.send(`🏆 كفو! الفائز هو <@${m.author.id>> بكتبته للكلمة: **${randomWord}**`);
+                    // تم تصحيح الخطأ هنا بإزالة الرمز الزائد
+                    m.channel.send(`🏆 كفو! الفائز هو <@${m.author.id}> بكتبته للكلمة: **${randomWord}**`);
                 }
             });
 
@@ -187,7 +182,6 @@ client.on('messageCreate', async (message) => {
     }
 });
 
-// سيرفر ويب للحفاظ على تشغيل البوت على Render
 const http = require('http');
 const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
