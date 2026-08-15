@@ -8,19 +8,26 @@ const fs = require('fs');
 const https = require('https');
 const path = require('path');
 
-// تحميل وتسجيل الخط العربي لمنع المربعات وتوفير مظهر احترافي
 const fontPath = path.join(__dirname, 'Cairo-Bold.ttf');
-if (!fs.existsSync(fontPath)) {
-    const file = fs.createWriteStream(fontPath);
-    https.get("https://github.com/google/fonts/raw/main/ofl/cairo/Cairo-Bold.ttf", (response) => {
-        response.pipe(file);
-        file.on('finish', () => {
-            file.close();
+
+// دالة لتحميل وتسجيل الخط بانتظار اكتماله تماماً قبل تشغيل البوت
+function loadFont() {
+    return new Promise((resolve) => {
+        if (fs.existsSync(fontPath)) {
             GlobalFonts.registerFromPath(fontPath, 'Cairo');
-        });
+            resolve();
+        } else {
+            const file = fs.createWriteStream(fontPath);
+            https.get("https://github.com/google/fonts/raw/main/ofl/cairo/Cairo-Bold.ttf", (response) => {
+                response.pipe(file);
+                file.on('finish', () => {
+                    file.close();
+                    GlobalFonts.registerFromPath(fontPath, 'Cairo');
+                    resolve();
+                });
+            });
+        }
     });
-} else {
-    GlobalFonts.registerFromPath(fontPath, 'Cairo');
 }
 
 const client = new Client({
@@ -118,7 +125,7 @@ async function generateGameImage(word) {
     ctx.textBaseline = 'middle';
     ctx.fillText('⚡ لديك 15 ثانية', 202, 52);
 
-    // 3. المربع السفلي الكبير (الكلمة المستهدفة مقلوبة لتتصل الحروف بشكل صحيح وسليم)
+    // 3. المربع السفلي الكبير (الكلمة المستهدفة)
     drawRoundedRect(50, 105, 600, 180, 35, '#161920', '#3a4454');
 
     const reversedWord = word.split('').reverse().join('');
@@ -184,7 +191,6 @@ client.on('messageCreate', async (message) => {
                     }
                     activeChannels.delete(channelId);
                     collector.stop('won');
-                    // رسالة الفوز (المنشن فقط)
                     m.channel.send(`<@${m.author.id}>`);
                 }
             });
@@ -193,7 +199,6 @@ client.on('messageCreate', async (message) => {
                 if (reason !== 'won' && activeGames.has(guildId)) {
                     activeGames.delete(guildId);
                     activeChannels.delete(channelId);
-                    // رسالة انتهاء الوقت بالضبط
                     message.channel.send('انتهى الوقت');
                 }
             });
@@ -217,4 +222,7 @@ server.listen(PORT, () => {
     console.log(`Server is listening on port ${PORT}`);
 });
 
-client.login(process.env.TOKEN);
+// الانتظار حتى يتم تحميل الخط بالكامل قبل تسجيل دخول البوت
+loadFont().then(() => {
+    client.login(process.env.TOKEN);
+});
