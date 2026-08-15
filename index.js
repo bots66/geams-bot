@@ -5,7 +5,7 @@ const {
 } = require('discord.js');
 const { createCanvas, GlobalFonts, loadImage } = require('@napi-rs/canvas');
 const fs = require('fs');
-const https = require('https');
+const https = https = require('https');
 const path = require('path');
 
 const fontPath = path.join(__dirname, 'Cairo-Bold.ttf');
@@ -149,21 +149,21 @@ async function generateGameImage(word) {
         if (strokeColor) { ctx.strokeStyle = strokeColor; ctx.lineWidth = 3; ctx.stroke(); }
     }
 
-    // مربع أسرع من يكتب العلوي الأيمن
-    drawRoundedRect(365, 25, 285, 55, 25, '#1a1d24', '#2b313d');
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 20px Cairo, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('أسرع من يكتب ؟', 507, 52);
-
-    // مربع المؤقت العلوي الأيسر
+    // المربع الأيسر للمؤقت
     drawRoundedRect(50, 25, 305, 55, 25, '#1a1d24', '#2b313d');
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 18px Cairo, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('معك 15 ثانية', 202, 52);
+
+    // المربع الأيمن للعنوان
+    drawRoundedRect(365, 25, 285, 55, 25, '#1a1d24', '#2b313d');
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 20px Cairo, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('أسرع من يكتب ؟', 507, 52);
 
     // المربع السفلي للكلمة
     drawRoundedRect(50, 105, 600, 180, 35, '#161920', '#3a4454');
@@ -188,21 +188,21 @@ async function generateFlagGameImage(flagObj) {
         if (strokeColor) { ctx.strokeStyle = strokeColor; ctx.lineWidth = 3; ctx.stroke(); }
     }
 
-    // المربع العلوي الأيمن
-    drawRoundedRect(365, 25, 285, 55, 25, '#1a1d24', '#2b313d');
+    // المربع الأيسر للمؤقت
+    drawRoundedRect(50, 25, 305, 55, 25, '#1a1d24', '#2b313d');
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 18px Cairo, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('معك 15 ثانية', 507, 52);
+    ctx.fillText('معك 15 ثانية', 202, 52);
 
-    // المربع العلوي الأيسر
-    drawRoundedRect(50, 25, 305, 55, 25, '#1a1d24', '#2b313d');
+    // المربع الأيمن للعنوان
+    drawRoundedRect(365, 25, 285, 55, 25, '#1a1d24', '#2b313d');
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 20px Cairo, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('علم أي دولة ؟', 202, 52);
+    ctx.fillText('علم أي دولة ؟', 507, 52);
 
     // المربع السفلي الكبير للعلم
     drawRoundedRect(50, 100, 600, 195, 30, '#161920', '#3a4454');
