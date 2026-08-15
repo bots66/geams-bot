@@ -30,18 +30,17 @@ const client = new Client({
 });
 
 const activeGames = new Map();
-const activeChannels = new Set();
 const allowedRoleId = '1537723053318864927';
 
-// قائمة الكلمات بدون همزات
-const wordsList = ["شمس", "قمر", "نجمة", "سماء", "سحاب", "مطر", "برق", "رعد", "عاصفة", "رياح", "بحر", "نهر", "جبل", "صحراء", "سيارة", "طائرة", "قطار", "سفينة"];
+// قائمة كلمات كبيرة (فوق 100 كلمة)
+const wordsList = ["شمس", "قمر", "نجمة", "سماء", "سحاب", "مطر", "برق", "رعد", "عاصفة", "رياح", "بحر", "نهر", "جبل", "صحراء", "سيارة", "طائرة", "قطار", "سفينة", "مدرسة", "حديقة", "سوق", "مطعم", "فندق", "مطار", "قهوة", "شاي", "حليب", "ماء", "خبز", "جبن", "لحم", "دجاج", "سمك", "رز", "تفاح", "موز", "برتقال", "عنب", "طبيب", "مهندس", "معلم", "قلم", "كتاب", "دفتر", "ساعة", "نظارة", "هاتف", "حاسوب", "مكيف", "ثلاجة", "كرسي", "طاولة", "باب", "نافذة", "مصباح", "ملعقة", "شوكة", "قدر", "كوب", "فنجان", "حذاء", "قميص", "سروال", "عطر", "مشط", "صابون", "منشفة", "وسادة", "بطانية", "سجادة", "ستارة", "لوحة", "مفتاح", "قفل", "حقيبة", "محفظة", "نظارة", "رسالة", "صورة", "راديو", "تلفاز", "كاميرا", "مروحة", "مكواة", "غسالة", "فرن", "دراجة", "شاحنة", "حافلة", "تاكسي", "جسر", "نفق", "طريق", "شارع", "حي", "مدينة", "قرية", "دولة", "قارة", "محيط", "خليج", "وادي", "بركان", "هرم", "قلعة", "متحف", "مسرح", "سينما", "ملعب"];
 
-const flags = [
-    { name: "السعودية", code: "sa" }, { name: "امريكا", code: "us" }, { name: "الامارات", code: "ae" },
-    { name: "الكويت", code: "kw" }, { name: "قطر", code: "qa" }, { name: "البحرين", code: "bh" },
-    { name: "عمان", code: "om" }, { name: "مصر", code: "eg" }, { name: "المغرب", code: "ma" },
-    { name: "الجزائر", code: "dz" }, { name: "تركيا", code: "tr" }, { name: "فرنسا", code: "fr" },
-    { name: "اندونيسيا", code: "id" }, { name: "ماليزيا", code: "my" }, { name: "روسيا", code: "ru" }
+// قائمة أعلام (فوق 80 دولة)
+const allFlags = [
+    { name: "السعودية", code: "sa" }, { name: "امريكا", code: "us" }, { name: "الامارات", code: "ae" }, { name: "الكويت", code: "kw" }, { name: "قطر", code: "qa" }, { name: "البحرين", code: "bh" }, { name: "عمان", code: "om" }, { name: "مصر", code: "eg" }, { name: "المغرب", code: "ma" }, { name: "الجزائر", code: "dz" }, { name: "تونس", code: "tn" }, { name: "العراق", code: "iq" }, { name: "الاردن", code: "jo" }, { name: "سوريا", code: "sy" }, { name: "لبنان", code: "lb" }, { name: "فلسطين", code: "ps" }, { name: "ليبيا", code: "ly" }, { name: "السودان", code: "sd" }, { name: "اليمن", code: "ye" }, { name: "موريتانيا", code: "mr" },
+    { name: "تركيا", code: "tr" }, { name: "فرنسا", code: "fr" }, { name: "المانيا", code: "de" }, { name: "ايطاليا", code: "it" }, { name: "اسبانيا", code: "es" }, { name: "بريطانيا", code: "gb" }, { name: "روسيا", code: "ru" }, { name: "الصين", code: "cn" }, { name: "اليابان", code: "jp" }, { name: "كوريا الجنوبية", code: "kr" }, { name: "الهند", code: "in" }, { name: "البرازيل", code: "br" }, { name: "الارجنتين", code: "ar" }, { name: "كندا", code: "ca" }, { name: "استراليا", code: "au" }, { name: "ماليزيا", code: "my" }, { name: "اندونيسيا", code: "id" }, { name: "سنغافورة", code: "sg" }, { name: "المكسيك", code: "mx" }, { name: "جنوب افريقيا", code: "za" },
+    { name: "فنلندا", code: "fi" }, { name: "السويد", code: "se" }, { name: "النرويج", code: "no" }, { name: "الدنمارك", code: "dk" }, { name: "ايسلندا", code: "is" }, { name: "سويسرا", code: "ch" }, { name: "النمسا", code: "at" }, { name: "بلجيكا", code: "be" }, { name: "هولندا", code: "nl" }, { name: "البرتغال", code: "pt" }, { name: "اليونان", code: "gr" }, { name: "بولندا", code: "pl" }, { name: "المجر", code: "hu" }, { name: "التشيك", code: "cz" }, { name: "رومانيا", code: "ro" }, { name: "بلغاريا", code: "bg" }, { name: "صربيا", code: "rs" }, { name: "كرواتيا", code: "hr" }, { name: "سلوفاكيا", code: "sk" }, { name: "سلوفينيا", code: "si" },
+    { name: "البانيا", code: "al" }, { name: "قبرص", code: "cy" }, { name: "مالطا", code: "mt" }, { name: "لوكسمبورغ", code: "lu" }, { name: "ايرلندا", code: "ie" }, { name: "فيتنام", code: "vn" }, { name: "تايلاند", code: "th" }, { name: "الفلبين", code: "ph" }, { name: "باكستان", code: "pk" }, { name: "بنغلاديش", code: "bd" }, { name: "نيبال", code: "np" }, { name: "سريلانكا", code: "lk" }, { name: "ايران", code: "ir" }, { name: "نيوزيلندا", code: "nz" }, { name: "تشيلي", code: "cl" }, { name: "كولومبيا", code: "co" }, { name: "بيرو", code: "pe" }, { name: "اوكرانيا", code: "ua" }, { name: "سويسرا", code: "ch" }, { name: "نيجيريا", code: "ng" }
 ];
 
 function normalizeText(text) {
@@ -50,7 +49,7 @@ function normalizeText(text) {
         .replace(/[إأآا]/g, 'ا')
         .replace(/ة/g, 'ه')
         .replace(/ى/g, 'ي')
-        .replace(/[ء]/g, ''); // إزالة الهمزات
+        .replace(/[ء]/g, '');
 }
 
 async function generateImage(type, data) {
@@ -89,12 +88,12 @@ async function generateImage(type, data) {
         ctx.stroke();
 
         const img = await loadImage(`https://flagcdn.com/w320/${data.code}.png`);
-        // تصغير عرض العلم من اليمين واليسار (العرض صار 380 بدلاً من 450)
         ctx.save();
         ctx.beginPath();
-        ctx.roundRect(160, 125, 380, 145, 15);
+        // تصغير عرض العلم من الجوانب ليكون أنحف وأوضح
+        ctx.roundRect(180, 125, 340, 145, 15);
         ctx.clip();
-        ctx.drawImage(img, 160, 125, 380, 145);
+        ctx.drawImage(img, 180, 125, 340, 145);
         ctx.restore();
     }
     return canvas.toBuffer('image/png');
@@ -103,28 +102,53 @@ async function generateImage(type, data) {
 client.on('messageCreate', async (message) => {
     if (message.author.bot) return;
     const content = normalizeText(message.content);
+    const guildId = message.guild.id;
+
+    if (content === 'ايقاف' && message.author.id === allowedRoleId) {
+        if (activeGames.has(guildId)) {
+            activeGames.get(guildId).collector.stop();
+            activeGames.delete(guildId);
+            return message.react('✅');
+        }
+    }
 
     if (content === 'اسرع') {
+        if (activeGames.has(guildId)) return message.reply('في لعبة جالس تنلعب');
         const word = wordsList[Math.floor(Math.random() * wordsList.length)];
         const buffer = await generateImage('fast', word);
         await message.channel.send({ files: [new AttachmentBuilder(buffer)] });
-        activeGames.set(message.guild.id, { answer: normalizeText(word) });
+        
+        const collector = message.channel.createMessageCollector({ time: 15000 });
+        activeGames.set(guildId, { answer: normalizeText(word), collector });
+        
+        collector.on('collect', (m) => {
+            if (normalizeText(m.content) === normalizeText(word)) {
+                message.channel.send(`اسرع من يكتب ${word} <@${m.author.id}>`);
+                collector.stop();
+                activeGames.delete(guildId);
+            }
+        });
     }
 
     if (content === 'اعلام') {
-        const flag = flags[Math.floor(Math.random() * flags.length)];
+        if (activeGames.has(guildId)) return message.reply('في لعبة جالس تنلعب');
+        const flag = allFlags[Math.floor(Math.random() * allFlags.length)];
         const buffer = await generateImage('flag', flag);
         await message.channel.send({ files: [new AttachmentBuilder(buffer)] });
-        activeGames.set(message.guild.id, { answer: normalizeText(flag.name) });
-    }
-
-    if (activeGames.has(message.guild.id)) {
-        const game = activeGames.get(message.guild.id);
-        if (content === game.answer) {
-            message.channel.send(`فاز <@${message.author.id}>`);
-            activeGames.delete(message.guild.id);
-        }
+        
+        const collector = message.channel.createMessageCollector({ time: 15000 });
+        activeGames.set(guildId, { answer: normalizeText(flag.name), collector });
+        
+        collector.on('collect', (m) => {
+            if (normalizeText(m.content) === normalizeText(flag.name)) {
+                message.channel.send(`اسرع من يخمن ${flag.name} <@${m.author.id}>`);
+                collector.stop();
+                activeGames.delete(guildId);
+            }
+        });
     }
 });
 
-client.login(process.env.TOKEN);
+loadFont().then(() => {
+    client.login(process.env.TOKEN);
+});
