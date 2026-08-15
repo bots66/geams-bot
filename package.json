@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "discord.js": "^14.14.0",
-    "@napi-rs/canvas": "^0.1.48"
+    "@napi-rs/canvas": "^0.1.48",
+    "gifencoder": "^2.0.1"
   }
 }
