@@ -3,7 +3,25 @@ const {
     GatewayIntentBits, 
     AttachmentBuilder 
 } = require('discord.js');
-const { createCanvas } = require('@napi-rs/canvas');
+const { createCanvas, GlobalFonts } = require('@napi-rs/canvas');
+const fs = require('fs');
+const https = require('https');
+const path = require('path');
+
+// تسجيل خط عربي يدعم اللغة العربية بشكل كامل لمنع ظهور المربعات
+const fontPath = path.join(__dirname, 'Cairo-Bold.ttf');
+if (!fs.existsSync(fontPath)) {
+    const file = fs.createWriteStream(fontPath);
+    https.get("https://github.com/google/fonts/raw/main/ofl/cairo/Cairo-Bold.ttf", (response) => {
+        response.pipe(file);
+        file.on('finish', () => {
+            file.close();
+            GlobalFonts.registerFromPath(fontPath, 'Cairo');
+        });
+    });
+} else {
+    GlobalFonts.registerFromPath(fontPath, 'Cairo');
+}
 
 const client = new Client({
     intents: [
@@ -17,7 +35,6 @@ const client = new Client({
 const activeGames = new Map();
 const activeChannels = new Set();
 
-// قائمة الكلمات
 const wordsList = [
     "ضابط", "تفاحة", "سفينة", "طائرة", "سيارة", "قلم", "كتاب", "حاسوب", "هاتف", "طاولة", "كرسي",
     "شباك", "باب", "شمس", "قمر", "نجمة", "سحاب", "مطر", "بحر", "نهر", "جبل",
@@ -69,7 +86,6 @@ async function generateGameImage(word) {
     const canvas = createCanvas(700, 320);
     const ctx = canvas.getContext('2d');
 
-    // جعل الخلفية الخارجية شفافة تماماً (بدون أي لون خلفية)
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     function drawRoundedRect(x, y, width, height, radius, fillColor, strokeColor) {
@@ -86,28 +102,28 @@ async function generateGameImage(word) {
         }
     }
 
-    // 1. المربع العلوي الأيمن (أسرع بكتابة الكلمة)
+    // 1. المربع العلوي الأيمن
     drawRoundedRect(365, 25, 285, 55, 25, '#1a1d24', '#2b313d');
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 20px sans-serif';
+    ctx.font = 'bold 20px Cairo, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('أسرع بكتابة الكلمة', 507, 52);
 
-    // 2. المربع العلوي الأيسر (⚡ لديك 15 ثانية)
+    // 2. المربع العلوي الأيسر
     drawRoundedRect(50, 25, 305, 55, 25, '#1a1d24', '#2b313d');
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 18px sans-serif';
+    ctx.font = 'bold 18px Cairo, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('⚡ لديك 15 ثانية', 202, 52);
 
-    // 3. المربع السفلي الكبير (الكلمة المستهدفة)
+    // 3. المربع السفلي الكبير
     drawRoundedRect(50, 105, 600, 180, 35, '#161920', '#3a4454');
 
-    // جعل الكلمة المستهدفة بلون أبيض مثل باقي النصوص العلوية
+    // الكلمة المستهدفة باللون الأبيض وبخط عربي واضح وصحيح
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 55px sans-serif';
+    ctx.font = 'bold 55px Cairo, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(word, 350, 195);
