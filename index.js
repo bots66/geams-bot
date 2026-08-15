@@ -10,7 +10,6 @@ const path = require('path');
 
 const fontPath = path.join(__dirname, 'Cairo-Bold.ttf');
 
-// دالة لتحميل وتسجيل الخط بانتظار اكتماله تماماً قبل تشغيل البوت
 function loadFont() {
     return new Promise((resolve) => {
         if (fs.existsSync(fontPath)) {
@@ -75,7 +74,8 @@ const wordsList = [
     "غاضب", "هادئ", "شجاع", "جبان", "كريم", "بخيل", "طيب", "شرير", "جميل", "قبيح",
     "نظيف", "متسخ", "جديد", "قديم", "حار", "بارد", "دافئ", "مثلج", "جاف", "رطب",
     "مفتوح", "مغلق", "سهل", "صعب", "واضح", "خفي", "ظاهر", "باطن", "صحيح", "خطأ",
-    "صادق", "كاذب", "أمين", "خائن", "مخلص", "وفي", "حب", "كره", "سلام", "حرب"
+    "صادق", "كاذب", "أمين", "خائن", "مخلص", "وفي", "حب", "كره", "سلام", "حرب",
+    "لافت", "مكتبة", "مرسم", "ملصق", "مساء", "صباح", "قارب", "سفينة"
 ];
 
 function normalizeText(text) {
@@ -125,7 +125,7 @@ async function generateGameImage(word) {
     ctx.textBaseline = 'middle';
     ctx.fillText('⚡ لديك 15 ثانية', 202, 52);
 
-    // 3. المربع السفلي الكبير (الكلمة المستهدفة)
+    // 3. المربع السفلي الكبير (الكلمة المستهدفة مقلوبة بصرياً للرسم)
     drawRoundedRect(50, 105, 600, 180, 35, '#161920', '#3a4454');
 
     const reversedWord = word.split('').reverse().join('');
@@ -185,6 +185,7 @@ client.on('messageCreate', async (message) => {
             activeGames.get(guildId).collector = collector;
 
             collector.on('collect', (m) => {
+                // مقارنة الإجابة الصحيحة الأصلية وليست المقلوبة بصرياً
                 if (normalizeText(m.content) === normalizeText(randomWord)) {
                     if (activeGames.has(guildId)) {
                         activeGames.delete(guildId);
@@ -222,7 +223,6 @@ server.listen(PORT, () => {
     console.log(`Server is listening on port ${PORT}`);
 });
 
-// الانتظار حتى يتم تحميل الخط بالكامل قبل تسجيل دخول البوت
 loadFont().then(() => {
     client.login(process.env.TOKEN);
 });
