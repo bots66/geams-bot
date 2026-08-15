@@ -270,7 +270,7 @@ async function generateWinnerWheelImage(participants, targetUser) {
     return canvas.toBuffer('image/png');
 }
 
-// دالة إنشاء ملف الـ GIF (سهم أسود، دوران سريع ثم تباطؤ تدريجي)
+// دالة إنشاء الـ GIF بخلفية شفافة تماماً وسهم أسود وتوقف دقيق
 async function generateRouletteWheelGif(participants, targetPlayer) {
     const width = 600;
     const height = 600;
@@ -282,9 +282,11 @@ async function generateRouletteWheelGif(participants, targetPlayer) {
     encoder.setRepeat(0);
     encoder.setDelay(50);
     encoder.setQuality(10);
+    encoder.setTransparent(0x000000); // جعل الخلفية شفافة تماماً
 
     const baseCanvas = createCanvas(width, height);
     const bCtx = baseCanvas.getContext('2d');
+    bCtx.clearRect(0, 0, width, height); // إزالة أي لون خلفية
 
     const centerX = 300;
     const centerY = 300;
@@ -348,17 +350,16 @@ async function generateRouletteWheelGif(participants, targetPlayer) {
 
     const targetIndex = participants.findIndex(p => p.id === targetPlayer.id);
     const targetSectorCenter = targetIndex * angleStep + angleStep / 2 - Math.PI / 2;
-    const totalSpins = 6; // زيادة اللفات لإعطاء وقت للحركة السريعة والتباطؤ
+    const totalSpins = 6;
     const finalAngle = (Math.PI * 2 * totalSpins) + targetSectorCenter;
-    const totalFrames = 40; // زيادة عدد الإطارات لتنعيم حركة التباطؤ التدريجي
+    const totalFrames = 40;
 
     for (let frame = 0; frame < totalFrames; frame++) {
         const progress = frame / (totalFrames - 1);
-        // دالة تباطؤ (Ease Out Cubic) تبدأ سريعة وتهدي ببطء شديد حتى تتوقف
         const easedProgress = 1 - Math.pow(1 - progress, 3);
         const currentAngle = finalAngle * easedProgress;
 
-        ctx.clearRect(0, 0, width, height);
+        ctx.clearRect(0, 0, width, height); // مسح الإطار بخلفية شفافة
         ctx.drawImage(baseCanvas, 0, 0);
 
         ctx.save();
@@ -370,7 +371,7 @@ async function generateRouletteWheelGif(participants, targetPlayer) {
         ctx.lineTo(radius + 15, -10);
         ctx.lineTo(radius + 15, 10);
         ctx.closePath();
-        ctx.fillStyle = '#000000'; // تم تغيير لون السهم إلى الأسود
+        ctx.fillStyle = '#000000'; // سهم أسود
         ctx.fill();
         ctx.strokeStyle = '#333333';
         ctx.lineWidth = 2;
@@ -623,106 +624,112 @@ async function runRouletteRound(channel, guildId, channelId, participants) {
 
     const targetPlayer = participants[Math.floor(Math.random() * participants.length)];
     
+    // 1. إرسال صورة العجلة المتحركة وحدها أولاً وهي تلف وتهدي حتى تقف عند الفائز
     const gifBuffer = await generateRouletteWheelGif(participants, targetPlayer);
     const gifAttachment = new AttachmentBuilder(gifBuffer, { name: 'roulette_wheel.gif' });
 
-    let rows = [];
-    let currentRow = new ActionRowBuilder();
-    
-    participants.forEach((p) => {
-        if (p.id === targetPlayer.id) return;
+    await channel.send({
+        files: [gifAttachment]
+    });
 
-        if (currentRow.components.length >= 4) {
+    // 2. بعد انتهاء مدة الدوران (مثلاً بعد ثانيتين تماماً لتستقر العجلة)، يتم إرسال رسالة الأزرار والاختيار بشكل منفصل
+    setTimeout(async () => {
+        let rows = [];
+        let currentRow = new ActionRowBuilder();
+        
+        participants.forEach((p) => {
+            if (p.id === targetPlayer.id) return;
+
+            if (currentRow.components.length >= 4) {
+                rows.push(currentRow);
+                currentRow = new ActionRowBuilder();
+            }
+            const displayName = p.displayName || p.username;
+            currentRow.addComponents(
+                new ButtonBuilder()
+                    .setCustomId(`kick_${p.id}`)
+                    .setLabel(`${displayName.substring(0, 15)}`)
+                    .setStyle(ButtonStyle.Secondary)
+            );
+        });
+
+        if (currentRow.components.length > 0) {
             rows.push(currentRow);
-            currentRow = new ActionRowBuilder();
         }
-        const displayName = p.displayName || p.username;
-        currentRow.addComponents(
+
+        const bottomRow = new ActionRowBuilder().addComponents(
             new ButtonBuilder()
-                .setCustomId(`kick_${p.id}`)
-                .setLabel(`${displayName.substring(0, 15)}`)
+                .setCustomId('kick_random')
+                .setLabel('عشوائي')
+                .setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder()
+                .setCustomId('r_leave_game')
+                .setLabel('انسحاب')
                 .setStyle(ButtonStyle.Secondary)
         );
-    });
+        rows.push(bottomRow);
 
-    if (currentRow.components.length > 0) {
-        rows.push(currentRow);
-    }
+        const wheelMessage = await channel.send({
+            content: `<@!${targetPlayer.id}> , لديك **15 ثانية** لاختيار لاعب لطرده 🦵`,
+            components: rows
+        });
 
-    const bottomRow = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-            .setCustomId('kick_random')
-            .setLabel('عشوائي')
-            .setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder()
-            .setCustomId('r_leave_game')
-            .setLabel('انسحاب')
-            .setStyle(ButtonStyle.Secondary)
-    );
-    rows.push(bottomRow);
+        const collector = wheelMessage.createMessageComponentCollector({ time: 15000 });
 
-    // إرسال الصورة المتحركة مع الأزرار فوراً مع بداية الدوران
-    const wheelMessage = await channel.send({
-        content: `<@!${targetPlayer.id}> , لديك **15 ثانية** لاختيار لاعب لطرده 🦵`,
-        files: [gifAttachment],
-        components: rows
-    });
-
-    const collector = wheelMessage.createMessageComponentCollector({ time: 15000 });
-
-    collector.on('collect', async (interaction) => {
-        const userId = interaction.user.id;
-        
-        if (userId !== targetPlayer.id) {
-            return interaction.reply({ content: 'ليس دورك لاختيار اللاعب!', ephemeral: true });
-        }
-
-        let kickedUser = null;
-
-        if (interaction.customId === 'r_leave_game') {
-            const index = participants.findIndex(p => p.id === userId);
-            if (index !== -1) {
-                kickedUser = participants[index];
-                participants.splice(index, 1);
-                collector.stop();
-                await interaction.reply({ content: 'تم الانسحاب , ستتبدأ الجولة التالية خلال قليل ⏳', ephemeral: false });
-            } else {
-                return interaction.reply({ content: 'أنت لست مشاركاً في اللعبة.', ephemeral: true });
+        collector.on('collect', async (interaction) => {
+            const userId = interaction.user.id;
+            
+            if (userId !== targetPlayer.id) {
+                return interaction.reply({ content: 'ليس دورك لاختيار اللاعب!', ephemeral: true });
             }
-        } else if (interaction.customId === 'kick_random') {
-            let availableForRandom = participants.filter(p => p.id !== targetPlayer.id);
-            if (availableForRandom.length === 0) availableForRandom = participants;
-            kickedUser = availableForRandom[Math.floor(Math.random() * availableForRandom.length)];
-            participants = participants.filter(p => p.id !== kickedUser.id);
-            collector.stop();
-            await interaction.reply({ content: `تم طرد <@!${kickedUser.id}> بشكل عشوائي , ستتبدأ الجولة التالية خلال قليل ⏳`, ephemeral: false });
-        } else if (interaction.customId.startsWith('kick_')) {
-            const kickedId = interaction.customId.replace('kick_', '');
-            kickedUser = participants.find(p => p.id === kickedId);
-            if (kickedUser) {
+
+            let kickedUser = null;
+
+            if (interaction.customId === 'r_leave_game') {
+                const index = participants.findIndex(p => p.id === userId);
+                if (index !== -1) {
+                    kickedUser = participants[index];
+                    participants.splice(index, 1);
+                    collector.stop();
+                    await interaction.reply({ content: 'تم الانسحاب , ستتبدأ الجولة التالية خلال قليل ⏳', ephemeral: false });
+                } else {
+                    return interaction.reply({ content: 'أنت لست مشاركاً في اللعبة.', ephemeral: true });
+                }
+            } else if (interaction.customId === 'kick_random') {
+                let availableForRandom = participants.filter(p => p.id !== targetPlayer.id);
+                if (availableForRandom.length === 0) availableForRandom = participants;
+                kickedUser = availableForRandom[Math.floor(Math.random() * availableForRandom.length)];
                 participants = participants.filter(p => p.id !== kickedUser.id);
                 collector.stop();
-                await interaction.reply({ content: `تم طرد <@!${kickedUser.id}> , ستتبدأ الجولة التالية خلال قليل ⏳`, ephemeral: false });
+                await interaction.reply({ content: `تم طرد <@!${kickedUser.id}> بشكل عشوائي , ستتبدأ الجولة التالية خلال قليل ⏳`, ephemeral: false });
+            } else if (interaction.customId.startsWith('kick_')) {
+                const kickedId = interaction.customId.replace('kick_', '');
+                kickedUser = participants.find(p => p.id === kickedId);
+                if (kickedUser) {
+                    participants = participants.filter(p => p.id !== kickedUser.id);
+                    collector.stop();
+                    await interaction.reply({ content: `تم طرد <@!${kickedUser.id}> , ستتبدأ الجولة التالية خلال قليل ⏳`, ephemeral: false });
+                }
             }
-        }
 
-        if (kickedUser) {
-            setTimeout(() => {
-                runRouletteRound(channel, guildId, channelId, participants);
-            }, 1500);
-        }
-    });
+            if (kickedUser) {
+                setTimeout(() => {
+                    runRouletteRound(channel, guildId, channelId, participants);
+                }, 1500);
+            }
+        });
 
-    collector.on('end', (collected, reason) => {
-        if (reason === 'time') {
-            participants = participants.filter(p => p.id !== targetPlayer.id);
-            channel.send(`تم طرد <@!${targetPlayer.id}> لعدم الاختيار , ستتبدأ الجولة التالية خلال قليل ⏳`);
+        collector.on('end', (collected, reason) => {
+            if (reason === 'time') {
+                participants = participants.filter(p => p.id !== targetPlayer.id);
+                channel.send(`تم طرد <@!${targetPlayer.id}> لعدم الاختيار , ستتبدأ الجولة التالية خلال قليل ⏳`);
 
-            setTimeout(() => {
-                runRouletteRound(channel, guildId, channelId, participants);
-            }, 1500);
-        }
-    });
+                setTimeout(() => {
+                    runRouletteRound(channel, guildId, channelId, participants);
+                }, 1500);
+            }
+        });
+    }, 2000); // تنفذ رسالة الأزرار بعد ثواني من انتهاء الـ GIF
 }
 
 const server = http.createServer((req, res) => {
