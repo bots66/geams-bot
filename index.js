@@ -181,7 +181,8 @@ async function generateFlagGameImage(flagObj) {
     return canvas.toBuffer('image/png');
 }
 
-async function generateRouletteWheelImage(participants, targetUser, rotationAngle = 0, arrowAngle = 0) {
+// دالة رسم العجلة (ثابتة تماماً، والسهم فقط هو الذي يدور، مع دعم عرض اسم/يوزر الفائز أو صورة الأفاتار بدقة)
+async function generateRouletteWheelImage(participants, targetUser, arrowAngle = 0, isWinnerDisplay = false) {
     const canvas = createCanvas(600, 600);
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -192,11 +193,7 @@ async function generateRouletteWheelImage(participants, targetUser, rotationAngl
     const count = participants.length;
     const angleStep = (Math.PI * 2) / count;
 
-    ctx.save();
-    ctx.translate(centerX, centerY);
-    ctx.rotate(rotationAngle);
-    ctx.translate(-centerX, -centerY);
-
+    // رسم أقسام العجلة وثباتها
     participants.forEach((p, i) => {
         const startAngle = i * angleStep - Math.PI / 2;
         const endAngle = (i + 1) * angleStep - Math.PI / 2;
@@ -218,7 +215,8 @@ async function generateRouletteWheelImage(participants, targetUser, rotationAngl
         ctx.textAlign = 'right';
         ctx.fillStyle = '#000000';
         ctx.font = 'bold 20px sans-serif';
-        ctx.fillText(p.username.substring(0, 12), radius - 50, 10);
+        const displayName = p.displayName || p.username;
+        ctx.fillText(displayName.substring(0, 12), radius - 50, 10);
         ctx.restore();
     });
 
@@ -228,23 +226,24 @@ async function generateRouletteWheelImage(participants, targetUser, rotationAngl
     ctx.lineWidth = 12;
     ctx.stroke();
 
-    ctx.restore();
+    if (!isWinnerDisplay) {
+        // رسم السهم المتحرك وحده يدور حول المركز
+        ctx.save();
+        ctx.translate(centerX, centerY);
+        ctx.rotate(arrowAngle);
+        ctx.translate(-centerX, -centerY);
 
-    // سهم أسود متحرك ويدور بسلاسة دون ألوان صفراء
-    ctx.save();
-    ctx.translate(centerX, centerY);
-    ctx.rotate(arrowAngle);
-    ctx.translate(-centerX, -centerY);
+        ctx.beginPath();
+        ctx.moveTo(canvas.width - 15, centerY - 12);
+        ctx.lineTo(canvas.width - 2, centerY);
+        ctx.moveTo(canvas.width - 15, centerY + 12);
+        ctx.lineTo(canvas.width - 2, centerY);
+        ctx.fillStyle = '#000000';
+        ctx.fill();
+        ctx.restore();
+    }
 
-    ctx.beginPath();
-    ctx.moveTo(canvas.width - 15, centerY - 12);
-    ctx.lineTo(canvas.width - 2, centerY);
-    ctx.moveTo(canvas.width - 15, centerY + 12);
-    ctx.lineTo(canvas.width - 2, centerY);
-    ctx.fillStyle = '#000000';
-    ctx.fill();
-    ctx.restore();
-
+    // دائرة الأفاتار في المنتصف (أفاتار الشخص الفائز أو المستهدف)
     const avatarRadius = 75;
     ctx.save();
     ctx.beginPath();
@@ -253,7 +252,7 @@ async function generateRouletteWheelImage(participants, targetUser, rotationAngl
     ctx.clip();
 
     try {
-        const avatarImg = await loadImage(targetUser.displayAvatarURL({ extension: 'png' }));
+        const avatarImg = await loadImage(targetUser.displayAvatarURL({ extension: 'png', size: 256 }));
         ctx.drawImage(avatarImg, centerX - avatarRadius, centerY - avatarRadius, avatarRadius * 2, avatarRadius * 2);
     } catch (e) {
         ctx.fillStyle = '#cccccc';
@@ -266,6 +265,29 @@ async function generateRouletteWheelImage(participants, targetUser, rotationAngl
     ctx.strokeStyle = '#000000';
     ctx.lineWidth = 6;
     ctx.stroke();
+
+    // إذا كانت شاشة فائز، يتم رسم شريط الاسم بالأسفل تماماً مثل التصميم المطلوب
+    if (isWinnerDisplay) {
+        const boxWidth = 260;
+        const boxHeight = 50;
+        const boxX = centerX - boxWidth / 2;
+        const boxY = centerY + avatarRadius + 15;
+
+        ctx.beginPath();
+        ctx.roundRect(boxX, boxY, boxWidth, boxHeight, 25);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+        ctx.strokeStyle = '#e0e0e0';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        ctx.fillStyle = '#000000';
+        ctx.font = 'bold 22px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const winnerName = targetUser.displayName || targetUser.username;
+        ctx.fillText(winnerName.substring(0, 15), centerX, boxY + boxHeight / 2);
+    }
 
     return canvas.toBuffer('image/png');
 }
@@ -496,37 +518,50 @@ async function startRouletteGame(channel, guildId, channelId, participants) {
 }
 
 async function runRouletteRound(channel, guildId, channelId, participants) {
+    // إذا تبقى فائز واحد فقط
     if (participants.length === 1) {
         const winner = participants[0];
         activeGames.delete(guildId);
         activeChannels.delete(channelId);
 
-        const winBuffer = await generateRouletteWheelImage([winner], winner, 0, 0);
+        const winBuffer = await generateRouletteWheelImage([winner], winner, 0, true);
         const winAttachment = new AttachmentBuilder(winBuffer, { name: 'roulette_win.png' });
         return channel.send({ content: `@here\n<@!${winner.id}>`, files: [winAttachment] });
     }
 
     const targetPlayer = participants[Math.floor(Math.random() * participants.length)];
     
-    let currentAngle = 0;
     let arrowAngle = 0;
-    
-    const initialWheelBuffer = await generateRouletteWheelImage(participants, targetPlayer, currentAngle, arrowAngle);
+    const initialWheelBuffer = await generateRouletteWheelImage(participants, targetPlayer, arrowAngle, false);
     const wheelMessage = await channel.send({
         files: [new AttachmentBuilder(initialWheelBuffer, { name: 'roulette_wheel.png' })]
     });
 
-    // محاكاة حركة دوران السهم والعجلة ببطء تدريجي (حركة سلسة تشبه GIF)
-    for (let step = 0; step < 15; step++) {
-        await new Promise(r => setTimeout(r, 200));
-        currentAngle += Math.PI / 6;
-        arrowAngle += Math.PI / 4;
-        const rotatedBuffer = await generateRouletteWheelImage(participants, targetPlayer, currentAngle, arrowAngle);
+    // دوران السهم لمدة 6 ثوانٍ إجمالية (أول 4 ثوانٍ سريعة، آخر ثانيتين تباطؤ تدريجي سلس بدون أي وميض)
+    const startTime = Date.now();
+    const totalDuration = 6000; // 6 ثواني
+    
+    while (Date.now() - startTime < totalDuration) {
+        const elapsed = Date.now() - startTime;
+        let speed = 0.4; // سرعة البداية
+        
+        // آخر ثانيتين يحدث تباطؤ تدريجي
+        if (elapsed > 4000) {
+            const progress = (elapsed - 4000) / 2000;
+            speed = 0.4 * (1 - progress) + 0.02; // يتوقف بنعومة
+        }
+
+        arrowAngle += speed;
+        
+        const rotatedBuffer = await generateRouletteWheelImage(participants, targetPlayer, arrowAngle, false);
         await wheelMessage.edit({
             files: [new AttachmentBuilder(rotatedBuffer, { name: 'roulette_wheel.png' })]
         }).catch(() => {});
+
+        await new Promise(r => setTimeout(r, 100));
     }
 
+    // تجهيز أزرار الإقصاء والتحكم
     let rows = [];
     let currentRow = new ActionRowBuilder();
     
@@ -535,20 +570,21 @@ async function runRouletteRound(channel, guildId, channelId, participants) {
             rows.push(currentRow);
             currentRow = new ActionRowBuilder();
         }
+        const displayName = p.displayName || p.username;
         currentRow.addComponents(
             new ButtonBuilder()
                 .setCustomId(`kick_${p.id}`)
-                .setLabel(`${index + 1} - ${p.username.substring(0, 15)}`)
+                .setLabel(`${index + 1} - ${displayName.substring(0, 15)}`)
                 .setStyle(ButtonStyle.Secondary)
         );
     });
 
-    if (currentRow.components.length >= 4) {
+    if (currentRow.components.length > 0) {
         rows.push(currentRow);
-        currentRow = new ActionRowBuilder();
     }
 
-    currentRow.addComponents(
+    // زر العشوائي وزر الانسحاب في سطر منفصل ومستقل وبألوان رمادية متطابقة
+    const bottomRow = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
             .setCustomId('kick_random')
             .setLabel('عشوائي')
@@ -556,9 +592,9 @@ async function runRouletteRound(channel, guildId, channelId, participants) {
         new ButtonBuilder()
             .setCustomId('r_leave_game')
             .setLabel('انسحاب')
-            .setStyle(ButtonStyle.Danger)
+            .setStyle(ButtonStyle.Secondary)
     );
-    rows.push(currentRow);
+    rows.push(bottomRow);
 
     await wheelMessage.edit({
         content: `<@!${targetPlayer.id}> , لديك **15 ثانية** لاختيار لاعب لطرده 🦵`,
@@ -587,7 +623,6 @@ async function runRouletteRound(channel, guildId, channelId, participants) {
                 return interaction.reply({ content: 'أنت لست مشاركاً في اللعبة.', ephemeral: true });
             }
         } else if (interaction.customId === 'kick_random') {
-            // استبعاد الشخص نفسه أو اختيار شخص عشوائي آخر غيره
             let availableForRandom = participants.filter(p => p.id !== targetPlayer.id);
             if (availableForRandom.length === 0) availableForRandom = participants;
             kickedUser = availableForRandom[Math.floor(Math.random() * availableForRandom.length)];
