@@ -84,86 +84,35 @@ const wordsList = [
     "حب", "كره", "سلام", "حرب", "صداقة", "عائلة", "أب", "أم", "أخ", "أخت"
 ];
 
-// قائمة الأعلام (مشهورة 80% وصعبة 20%) مع رابط علم الـ SVG أو PNG الدقيق
 const popularFlags = [
-    { name: "السعودية", code: "sa" },
-    { name: "امريكا", code: "us" },
-    { name: "الإمارات", code: "ae" },
-    { name: "الكويت", code: "kw" },
-    { name: "قطر", code: "qa" },
-    { name: "البحرين", code: "bh" },
-    { name: "عمان", code: "om" },
-    { name: "مصر", code: "eg" },
-    { name: "المغرب", code: "ma" },
-    { name: "الجزائر", code: "dz" },
-    { name: "تونس", code: "tn" },
-    { name: "العراق", code: "iq" },
-    { name: "الأردن", code: "jo" },
-    { name: "سوريا", code: "sy" },
-    { name: "لبنان", code: "lb" },
-    { name: "فلسطين", code: "ps" },
-    { name: "تركيا", code: "tr" },
-    { name: "بريطانيا", code: "gb" },
-    { name: "فرنسا", code: "fr" },
-    { name: "ألمانيا", code: "de" },
-    { name: "إيطاليا", code: "it" },
-    { name: "إسبانيا", code: "es" },
-    { name: "البرازيل", code: "br" },
-    { name: "الأرجنتين", code: "ar" },
-    { name: "اليابان", code: "jp" },
-    { name: "كوريا الجنوبية", code: "kr" },
-    { name: "الصين", code: "cn" },
-    { name: "الهند", code: "in" },
-    { name: "كندا", code: "ca" },
-    { name: "استراليا", code: "au" },
-    { name: "ماليزيا", code: "my" },
-    { name: "إندونيسيا", code: "id" },
-    { name: "سنغافورة", code: "sg" },
-    { name: "روسيا", code: "ru" },
-    { name: "المكسيك", code: "mx" },
-    { name: "جنوب افريقيا", code: "za" }
+    { name: "السعودية", code: "sa" }, { name: "امريكا", code: "us" }, { name: "الإمارات", code: "ae" },
+    { name: "الكويت", code: "kw" }, { name: "قطر", code: "qa" }, { name: "البحرين", code: "bh" },
+    { name: "عمان", code: "om" }, { name: "مصر", code: "eg" }, { name: "المغرب", code: "ma" },
+    { name: "الجزائر", code: "dz" }, { name: "تونس", code: "tn" }, { name: "العراق", code: "iq" },
+    { name: "الأردن", code: "jo" }, { name: "سوريا", code: "sy" }, { name: "لبنان", code: "lb" },
+    { name: "فلسطين", code: "ps" }, { name: "تركيا", code: "tr" }, { name: "بريطانيا", code: "gb" },
+    { name: "فرنسا", code: "fr" }, { name: "ألمانيا", code: "de" }, { name: "إيطاليا", code: "it" },
+    { name: "إسبانيا", code: "es" }, { name: "البرازيل", code: "br" }, { name: "الأرجنتين", code: "ar" },
+    { name: "اليابان", code: "jp" }, { name: "كوريا الجنوبية", code: "kr" }, { name: "الصين", code: "cn" },
+    { name: "الهند", code: "in" }, { name: "كندا", code: "ca" }, { name: "استراليا", code: "au" },
+    { name: "ماليزيا", code: "my" }, { name: "إندونيسيا", code: "id" }, { name: "سنغافورة", code: "sg" },
+    { name: "روسيا", code: "ru" }, { name: "المكسيك", code: "mx" }, { name: "جنوب افريقيا", code: "za" }
 ];
 
 const hardFlags = [
-    { name: "استونيا", code: "ee" },
-    { name: "لاتفيا", code: "lv" },
-    { name: "ليتوانيا", code: "lt" },
-    { name: "فنلندا", code: "fi" },
-    { name: "السويد", code: "se" },
-    { name: "النرويج", code: "no" },
-    { name: "الدنمارك", code: "dk" },
-    { name: "ايسلندا", code: "is" },
-    { name: "سويسرا", code: "ch" },
-    { name: "النمسا", code: "at" },
-    { name: "بلجيكا", code: "be" },
-    { name: "هولندا", code: "nl" },
-    { name: "البرتغال", code: "pt" },
-    { name: "اليونان", code: "gr" },
-    { name: "بولندا", code: "pl" },
-    { name: "المجر", code: "hu" },
-    { name: "تشيك", code: "cz" },
-    { name: "رومانيا", code: "ro" },
-    { name: "بلغاريا", code: "bg" },
-    { name: "صربيا", code: "rs" },
-    { name: "كرواتيا", code: "hr" },
-    { name: "سلوفاكيا", code: "sk" },
-    { name: "سلوفينيا", code: "si" },
-    { name: "ألبانيا", code: "al" },
-    { name: "قبرص", code: "cy" },
-    { name: "مالطا", code: "mt" },
-    { name: "لوكسمبورغ", code: "lu" },
-    { name: "أيرلندا", code: "ie" },
-    { name: "فيتنام", code: "vn" },
-    { name: "تايلاند", code: "th" },
-    { name: "الفلبين", code: "ph" },
-    { name: "باكستان", code: "pk" },
-    { name: "بنغلاديش", code: "bd" },
-    { name: "نيبال", code: "np" },
-    { name: "سريلانكا", code: "lk" },
-    { name: "إيران", code: "ir" },
-    { name: "نيوزيلندا", code: "nz" },
-    { name: "تشيلي", code: "cl" },
-    { name: "كولومبيا", code: "co" },
+    { name: "استونيا", code: "ee" }, { name: "لاتفيا", code: "lv" }, { name: "ليتوانيا", code: "lt" },
+    { name: "فنلندا", code: "fi" }, { name: "السويد", code: "se" }, { name: "النرويج", code: "no" },
+    { name: "الدنمارك", code: "dk" }, { name: "ايسلندا", code: "is" }, { name: "سويسرا", code: "ch" },
+    { name: "النمسا", code: "at" }, { name: "بلجيكا", code: "be" }, { name: "هولندا", code: "nl" },
+    { name: "البرتغال", code: "pt" }, { name: "اليونان", code: "gr" }, { name: "بولندا", code: "pl" },
+    { name: "المجر", code: "hu" }, { name: "تشيك", code: "cz" }, { name: "رومانيا", code: "ro" },
+    { name: "بلغاريا", code: "bg" }, { name: "صربيا", code: "rs" }, { name: "كرواتيا", code: "hr" },
+    { name: "سلوفاكيا", code: "sk" }, { name: "سلوفينيا", code: "si" }, { name: "ألبانيا", code: "al" },
+    { name: "قبرص", code: "cy" }, { name: "مالطا", code: "mt" }, { name: "لوكسمبورغ", code: "lu" },
+    { name: "أيرلندا", code: "ie" }, { name: "فيتنام", code: "vn" }, { name: "تايلاند", code: "th" },
+    { name: "الفلبين", code: "ph" }, { name: "باكستان", code: "pk" }, { name: "بنغلاديش", code: "bd" },
+    { name: "نيبال", code: "np" }, { name: "سريلانكا", code: "lk" }, { name: "إيران", code: "ir" },
+    { name: "نيوزيلندا", code: "nz" }, { name: "تشيلي", code: "cl" }, { name: "كولومبيا", code: "co" },
     { name: "بيرو", code: "pe" }
 ];
 
@@ -172,18 +121,14 @@ let usedFlags = [];
 function getRandomFlag() {
     let pool = popularFlags;
     const rand = Math.random();
-    // 80% مشهورة، 20% صعبة
     if (rand > 0.8) {
         pool = hardFlags;
     }
-    
-    // فلترة غير المستخدمة لمنع التكرار قدر الإمكان
     let available = pool.filter(f => !usedFlags.includes(f.name));
     if (available.length === 0) {
         usedFlags = [];
         available = pool;
     }
-    
     const flag = available[Math.floor(Math.random() * available.length)];
     usedFlags.push(flag.name);
     return flag;
@@ -200,7 +145,6 @@ function normalizeText(text) {
         .replace(/ى/g, 'ي');
 }
 
-// دالة لتوليد صورة لعبة أسرع من يكتب
 async function generateGameImage(word) {
     const canvas = createCanvas(700, 320);
     const ctx = canvas.getContext('2d');
@@ -213,6 +157,7 @@ async function generateGameImage(word) {
         if (strokeColor) { ctx.strokeStyle = strokeColor; ctx.lineWidth = 3; ctx.stroke(); }
     }
 
+    // مربع أسرع من يكتب العلوي الأيمن
     drawRoundedRect(365, 25, 285, 55, 25, '#1a1d24', '#2b313d');
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 20px Cairo, sans-serif';
@@ -220,13 +165,22 @@ async function generateGameImage(word) {
     ctx.textBaseline = 'middle';
     ctx.fillText('أسرع من يكتب', 507, 52);
 
+    // مربع المؤقت العلوي الأيسر
     drawRoundedRect(50, 25, 305, 55, 25, '#1a1d24', '#2b313d');
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 18px Cairo, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('⚡ لديك 15 ثانية', 202, 52);
+    ctx.fillText('معك 15 ثانية', 185, 52);
 
+    // دائرة المؤقت
+    ctx.beginPath();
+    ctx.arc(305, 52, 11, 0, Math.PI * 2);
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    // المربع السفلي للكلمة
     drawRoundedRect(50, 105, 600, 180, 35, '#161920', '#3a4454');
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 55px Cairo, sans-serif';
@@ -237,7 +191,6 @@ async function generateGameImage(word) {
     return canvas.toBuffer('image/png');
 }
 
-// دالة لتوليد صورة لعبة الأعلام تماماً مثل الصورة المطلوبة
 async function generateFlagGameImage(flagObj) {
     const canvas = createCanvas(700, 320);
     const ctx = canvas.getContext('2d');
@@ -250,38 +203,30 @@ async function generateFlagGameImage(flagObj) {
         if (strokeColor) { ctx.strokeStyle = strokeColor; ctx.lineWidth = 3; ctx.stroke(); }
     }
 
-    // 1. المربع العلوي الأيسر (أعلام)
-    drawRoundedRect(50, 25, 305, 55, 25, '#1a1d24', '#2b313d');
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 20px Cairo, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('أعلام', 202, 52);
-
-    // 2. المربع العلوي الأيمن (⚡ لديك 15 ثانية مع أيقونة المؤقت بالرسم)
+    // المربع العلوي الأيمن (معك 15 ثانية + أيقونة المؤقت الدائرية)
     drawRoundedRect(365, 25, 285, 55, 25, '#1a1d24', '#2b313d');
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 18px Cairo, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('⚡ لديك 15 ثانية', 507, 52);
+    ctx.fillText('معك 15 ثانية', 485, 52);
 
-    // رسم دائرة أيقونة المؤقت البسيطة بجانب المربع إذا لزم أو داخل النص
     ctx.beginPath();
-    ctx.arc(615, 52, 10, 0, Math.PI * 2);
+    ctx.arc(615, 52, 11, 0, Math.PI * 2);
     ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 2.5;
     ctx.stroke();
 
-    // 3. المربع السفلي الكبير الذي يحتوي العلم
+    // المربع العلوي الأيسر (فارغ بتصميم دقيق مثل الصورة)
+    drawRoundedRect(50, 25, 305, 55, 25, '#1a1d24', '#2b313d');
+
+    // المربع السفلي الكبير للعلم
     drawRoundedRect(50, 100, 600, 195, 30, '#161920', '#3a4454');
 
-    // جلب صورة العلم عبر الرابط الرسمي
     const flagUrl = `https://flagcdn.com/w320/${flagObj.code}.png`;
     try {
-        const { Canvas, loadImage } = require('@napi-rs/canvas');
+        const { loadImage } = require('@napi-rs/canvas');
         const img = await loadImage(flagUrl);
-        // رسم العلم داخل المربع بأبعاد متناسقة ونظيفة
         ctx.save();
         ctx.beginPath();
         ctx.roundRect(85, 125, 530, 145, 15);
@@ -306,13 +251,12 @@ client.on('messageCreate', async (message) => {
     const guildId = message.guild.id;
     const channelId = message.channel.id;
 
-    // أمر إيقاف
+    // أمر إيقاف (دعم إيقاف وايقاف)
     if (content === 'إيقاف' || content === 'ايقاف') {
         if (!activeGames.has(guildId)) {
             return message.reply('لا توجد أي لعبة تعمل حالياً لإيقافها.');
         }
 
-        // تحقق من الصلاحية (الإيدي المطلوب)
         if (message.author.id !== allowedRoleId) {
             try {
                 await message.react('❌');
@@ -357,7 +301,7 @@ client.on('messageCreate', async (message) => {
                     if (activeGames.has(guildId)) activeGames.delete(guildId);
                     activeChannels.delete(channelId);
                     collector.stop('won');
-                    m.channel.send(`أسرع من يكتب: ${randomWord} <@${m.author.id}>`);
+                    m.channel.send(`أسرع من يكتب ${randomWord} <@${m.author.id}>`);
                 }
             });
 
@@ -402,7 +346,7 @@ client.on('messageCreate', async (message) => {
                     if (activeGames.has(guildId)) activeGames.delete(guildId);
                     activeChannels.delete(channelId);
                     collector.stop('won');
-                    m.channel.send(`أسرع من يكتب: ${flagObj.name} <@${m.author.id}>`);
+                    m.channel.send(`أسرع من يخمن ${flagObj.name} <@${m.author.id}>`);
                 }
             });
 
