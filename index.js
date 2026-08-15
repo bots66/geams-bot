@@ -197,49 +197,82 @@ async function generateFlagGameImage(flagObj) {
     return canvas.toBuffer('image/png');
 }
 
-async function generateRouletteWheelImage(avatarUrl, username) {
-    const canvas = createCanvas(1000, 560);
+async function generateRouletteWheelImage(participants, targetUser) {
+    const canvas = createCanvas(600, 600);
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    ctx.fillStyle = '#e8e8e8';
+    const centerX = 300;
+    const centerY = 300;
+    const radius = 280;
+    const count = participants.length;
+    const angleStep = (Math.PI * 2) / count;
+
+    // رسم أقسام العجلة
+    participants.forEach((p, i) => {
+        const startAngle = i * angleStep - Math.PI / 2;
+        const endAngle = (i + 1) * angleStep - Math.PI / 2;
+
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+        ctx.closePath();
+
+        ctx.fillStyle = i % 2 === 0 ? '#eeeeee' : '#e0e0e0';
+        ctx.fill();
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 4;
+        ctx.stroke();
+
+        // كتابة يوزر اللاعب داخل القسم
+        ctx.save();
+        ctx.translate(centerX, centerY);
+        ctx.rotate(startAngle + angleStep / 2);
+        ctx.textAlign = 'right';
+        ctx.fillStyle = '#000000';
+        ctx.font = 'bold 20px sans-serif';
+        ctx.fillText(p.username.substring(0, 12), radius - 50, 10);
+        ctx.restore();
+    });
+
+    // الدائرة الخارجية السوداء العريضة
     ctx.beginPath();
-    ctx.roundRect(100, 100, 800, 360, 40);
+    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 12;
+    ctx.stroke();
+
+    // السهم الأسود على اليمين
+    ctx.beginPath();
+    ctx.moveTo(canvas.width - 15, centerY - 15);
+    ctx.lineTo(canvas.width - 3, centerY);
+    ctx.lineTo(canvas.width - 15, centerY + 15);
+    ctx.fillStyle = '#000000';
     ctx.fill();
 
+    // دائرة الأفاتار في المنتصف
+    const avatarRadius = 75;
     ctx.save();
     ctx.beginPath();
-    ctx.arc(500, 250, 90, 0, Math.PI * 2, true);
+    ctx.arc(centerX, centerY, avatarRadius, 0, Math.PI * 2);
     ctx.closePath();
     ctx.clip();
+
     try {
-        const avatarImg = await loadImage(avatarUrl);
-        ctx.drawImage(avatarImg, 410, 160, 180, 180);
+        const avatarImg = await loadImage(targetUser.displayAvatarURL({ extension: 'png' }));
+        ctx.drawImage(avatarImg, centerX - avatarRadius, centerY - avatarRadius, avatarRadius * 2, avatarRadius * 2);
     } catch (e) {
         ctx.fillStyle = '#cccccc';
-        ctx.fillRect(410, 160, 180, 180);
+        ctx.fillRect(centerX - avatarRadius, centerY - avatarRadius, avatarRadius * 2, avatarRadius * 2);
     }
     ctx.restore();
 
-    ctx.strokeStyle = '#ffffff';
+    // حدود دائرة الأفاتار
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, avatarRadius, 0, Math.PI * 2);
+    ctx.strokeStyle = '#000000';
     ctx.lineWidth = 6;
-    ctx.beginPath();
-    ctx.arc(500, 250, 90, 0, Math.PI * 2, true);
     ctx.stroke();
-
-    ctx.fillStyle = '#f8f8f8';
-    ctx.beginPath();
-    ctx.roundRect(320, 380, 360, 55, 25);
-    ctx.fill();
-    ctx.strokeStyle = '#dddddd';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    ctx.fillStyle = '#111111';
-    ctx.font = 'bold 22px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(username, 500, 408);
 
     return canvas.toBuffer('image/png');
 }
@@ -451,35 +484,39 @@ async function startRouletteGame(channel, guildId, channelId, participants, lobb
     if (participants.length < 3) {
         activeGames.delete(guildId);
         activeChannels.delete(channelId);
-        await lobbyMessage.delete().catch(() => {});
         return channel.send('العدد غير مكتمل لكي تبدأ اللعبة');
     }
 
-    await lobbyMessage.delete().catch(() => {});
-    runRouletteRound(channel, guildId, channelId, participants);
+    await channel.send('⏳ تم الانتهاء من تسجيل الارقام ستبدأ الجولة خلال ثواني .');
+    setTimeout(() => {
+        runRouletteRound(channel, guildId, channelId, participants);
+    }, 2000);
 }
 
 async function runRouletteRound(channel, guildId, channelId, participants) {
-    if (participants.length === 1) {
-        const winner = participants[0];
+    if (participants.length === 2) {
+        const targetPlayer = participants[Math.floor(Math.random() * participants.length)];
+        const wheelBuffer = await generateRouletteWheelImage(participants, targetPlayer);
+        const wheelAttachment = new AttachmentBuilder(wheelBuffer, { name: 'roulette_wheel.png' });
+        await channel.send({ files: [wheelAttachment] });
+
+        const winner = participants.filter(p => p.id !== targetPlayer.id)[0];
         activeGames.delete(guildId);
         activeChannels.delete(channelId);
-        const finalBuffer = await generateRouletteWheelImage(winner.displayAvatarURL({ extension: 'png' }), winner.username);
-        const finalAttachment = new AttachmentBuilder(finalBuffer, { name: 'roulette_win.png' });
-        return channel.send({ content: `فاز باللعبة <@${winner.id}> 🎉`, files: [finalAttachment] });
+
+        const winBuffer = await generateRouletteWheelImage([winner], winner);
+        const winAttachment = new AttachmentBuilder(winBuffer, { name: 'roulette_win.png' });
+        return channel.send({ content: `@here\n${winner.username}`, files: [winAttachment] });
     }
 
     const targetPlayer = participants[Math.floor(Math.random() * participants.length)];
-    const avatarUrl = targetPlayer.displayAvatarURL({ extension: 'png' });
-    const username = targetPlayer.username;
-
-    const wheelBuffer = await generateRouletteWheelImage(avatarUrl, username);
+    const wheelBuffer = await generateRouletteWheelImage(participants, targetPlayer);
     const wheelAttachment = new AttachmentBuilder(wheelBuffer, { name: 'roulette_wheel.png' });
 
     let rows = [];
     let currentRow = new ActionRowBuilder();
     
-    participants.forEach((p, index) => {
+    participants.forEach((p) => {
         if (currentRow.components.length >= 5) {
             rows.push(currentRow);
             currentRow = new ActionRowBuilder();
@@ -500,68 +537,51 @@ async function runRouletteRound(channel, guildId, channelId, participants) {
         new ButtonBuilder()
             .setCustomId('kick_random')
             .setLabel('عشوائي')
-            .setStyle(ButtonStyle.Danger)
+            .setStyle(ButtonStyle.Secondary)
     );
     rows.push(randomRow);
 
     const gameMessage = await channel.send({
+        content: `<@!${targetPlayer.id}> , لديك **15 ثانية** لاختيار لاعب لطرده 🦵`,
         files: [wheelAttachment],
         components: rows
     });
 
-    const collector = gameMessage.createMessageComponentCollector({ time: 20000 });
+    const collector = gameMessage.createMessageComponentCollector({ time: 15000 });
 
     collector.on('collect', async (interaction) => {
         let kickedUser = null;
 
         if (interaction.customId === 'kick_random') {
             kickedUser = participants[Math.floor(Math.random() * participants.length)];
+            participants = participants.filter(p => p.id !== kickedUser.id);
+            collector.stop();
+            await interaction.reply({ content: `تم طرد <@!${kickedUser.id}> بشكل عشوائي , سوف تبدأ الجولة القادمة خلال ثواني ⏳ .`, ephemeral: false });
         } else if (interaction.customId.startsWith('kick_')) {
             const kickedId = interaction.customId.replace('kick_', '');
             kickedUser = participants.find(p => p.id === kickedId);
+            if (kickedUser) {
+                participants = participants.filter(p => p.id !== kickedUser.id);
+                collector.stop();
+                await interaction.reply({ content: `تم طرد <@!${kickedUser.id}> , سوف تبدأ الجولة القادمة خلال ثواني ⏳ .`, ephemeral: false });
+            }
         }
 
         if (kickedUser) {
-            participants = participants.filter(p => p.id !== kickedUser.id);
-            collector.stop();
-            await gameMessage.delete().catch(() => {});
-            await channel.send(`تم طرد <@${kickedUser.id}>`);
-
-            if (participants.length === 1) {
-                const finalWinner = participants[0];
-                activeGames.delete(guildId);
-                activeChannels.delete(channelId);
-                const winBuffer = await generateRouletteWheelImage(finalWinner.displayAvatarURL({ extension: 'png' }), finalWinner.username);
-                const winAttachment = new AttachmentBuilder(winBuffer, { name: 'roulette_win.png' });
-                return channel.send({ content: `فاز باللعبة <@${finalWinner.id}> 🎉`, files: [winAttachment] });
-            }
-
             setTimeout(() => {
                 runRouletteRound(channel, guildId, channelId, participants);
-            }, 1000);
+            }, 1500);
         }
     });
 
     collector.on('end', (collected, reason) => {
         if (reason === 'time') {
-            gameMessage.delete().catch(() => {});
             participants = participants.filter(p => p.id !== targetPlayer.id);
-            channel.send(`انتهى الوقت، تم طرد <@${targetPlayer.id}> تلقائياً.`);
-
-            if (participants.length === 1) {
-                const finalWinner = participants[0];
-                activeGames.delete(guildId);
-                activeChannels.delete(channelId);
-                generateRouletteWheelImage(finalWinner.displayAvatarURL({ extension: 'png' }), finalWinner.username).then(winBuffer => {
-                    const winAttachment = new AttachmentBuilder(winBuffer, { name: 'roulette_win.png' });
-                    channel.send({ content: `فاز باللعبة <@${finalWinner.id}> 🎉`, files: [winAttachment] });
-                });
-                return;
-            }
+            channel.send(`تم طرد <@!${targetPlayer.id}> لعدم الاختيار , سوف تبدأ الجولة القادمة خلال ثواني ⏳ .`);
 
             setTimeout(() => {
                 runRouletteRound(channel, guildId, channelId, participants);
-            }, 1000);
+            }, 1500);
         }
     });
 }
