@@ -1,10 +1,9 @@
 const { 
     Client, 
     GatewayIntentBits, 
-    EmbedBuilder,
     AttachmentBuilder 
 } = require('discord.js');
-const Jimp = require('jimp');
+const { createCanvas } = require('@napi-rs/canvas');
 
 const client = new Client({
     intents: [
@@ -18,7 +17,7 @@ const client = new Client({
 const activeGames = new Map();
 const activeChannels = new Set();
 
-// قائمة ضخمة تحتوي على أكثر من 300 كلمة متنوعة لمنع التكرار نهائياً
+// قائمة ضخمة تضم أكثر من 300 كلمة لمنع التكرار
 const wordsList = [
     "تفاحة", "سفينة", "طائرة", "سيارة", "قلم", "كتاب", "حاسوب", "هاتف", "طاولة", "كرسي",
     "شباك", "باب", "شمس", "قمر", "نجمة", "سحاب", "مطر", "بحر", "نهر", "جبل",
@@ -30,8 +29,8 @@ const wordsList = [
     "أسد", "نمر", "فهد", "ذئب", "حصان", "جمل", "خروف", "بقرة", "دجاجة", "سمكة",
     "قصر", "منزل", "غرفة", "مطبخ", "حمام", "سجادة", "وسادة", "ساعة", "مرآة", "صندوق",
     "مفتاح", "قفل", "سلسلة", "خاتم", "سوار", "عقد", "حذاء", "قبعة", "معطف", "قميص",
-    "بنطلون", "حقيبة", "محفظة", "نظارة", "قلم", "محاية", "مسطرة", "دفتر", "مقص", "صمغ",
-    "برتقال", "موز", "تفاح", "عنب", "فراولة", "بطيخ", "رمان", "مانجو", "اناناس", "كيوي",
+    "بنطلون", "حقيبة", "محفظة", "نظارة", "محاية", "مسطرة", "دفتر", "مقص", "صمغ",
+    "برتقال", "موز", "عنب", "فراولة", "بطيخ", "رمان", "مانجو", "اناناس", "كيوي",
     "خيار", "طماطم", "بطاطس", "بصل", "ثوم", "جزر", "خس", "بقدونس", "نعناع", "ليمون",
     "قهوة", "شاي", "حليب", "ماء", "عصير", "سكر", "ملح", "بهارات", "زيت", "زبدة",
     "خبز", "جبن", "لحم", "دجاج", "سمك", "رز", "معكرونة", "شوربة", "سلطة", "فطور",
@@ -39,18 +38,18 @@ const wordsList = [
     "طبيب", "مهندس", "معلم", "ضابط", "جندي", "طيار", "سائق", "تاجر", "صانع", "رسام",
     "كاتب", "شاعر", "مغني", "لاعب", "حارس", "مدرب", "صيدلي", "ممرض", "محامي", "قاضي",
     "مدرسة", "جامعة", "مستشفى", "مسجد", "ملعب", "حديقة", "سوق", "مطعم", "فندق", "مطار",
-    "ميناء", "محطة", "متحف", "مسرح", "سينما", "ملعب", "شركة", "مصنع", "مكتب", "بنك",
+    "ميناء", "محطة", "متحف", "مسرح", "سينما", "شركة", "مصنع", "مكتب", "بنك",
     "طريق", "شارع", "جسر", "نفق", "إشارة", "رصيف", "مرآب", "ساحة", "دوار", "حي",
-    "مدينة", "قرية", "دولة", "عاصمة", "قارة", "محيط", "خليج", "وادي", "صهارة", "بركان",
+    "مدينة", "قرية", "دولة", "عاصمة", "قارة", "محيط", "خليج", "وادي", "بركان",
     "زلزال", "رياح", "عاصفة", "رعد", "برق", "ضباب", "صقيع", "ثلوج", "حرارة", "رطوبة",
     "دائرة", "مربع", "مستطيل", "مثلث", "هندسة", "حساب", "رقم", "عدد", "عملية", "معادلة",
-    "طاقة", "قوة", "سرعة", "تسارع", "كتلة", "وزن", "حجم", "مساحة", "طول", "عرض",
+    "طاقة", "قوة", "تسارع", "كتلة", "وزن", "حجم", "مساحة", "طول", "عرض",
     "ارتفاع", "عمق", "زمن", "دقيقة", "ثانية", "ساعة", "يوم", "أسبوع", "شهر", "سنة",
     "قرن", "تاريخ", "حاضر", "مستقبل", "ماضي", "بداية", "نهاية", "وسط", "يمين", "يسار",
     "أعلى", "أسفل", "أمام", "خلف", "قريب", "بعيد", "كبير", "صغير", "طويل", "قصير",
     "سريع", "بطيء", "قوي", "ضعيف", "ذكي", "غبي", "نشيط", "كسلان", "سعيد", "حزين",
     "غاضب", "هادئ", "شجاع", "جبان", "كريم", "بخيل", "طيب", "شرير", "جميل", "قبيح",
-    "نظيف", "متسخ", "جديد", "قديم", "حار", "بارد", "داافئ", "مثلج", "جاف", "رطب",
+    "نظيف", "متسخ", "جديد", "قديم", "حار", "بارد", "دافئ", "مثلج", "جاف", "رطب",
     "مفتوح", "مغلق", "سهل", "صعب", "واضح", "خفي", "ظاهر", "باطن", "صحيح", "خطأ",
     "صادق", "كاذب", "أمين", "خائن", "مخلص", "وفي", "حب", "كره", "سلام", "حرب"
 ];
@@ -66,33 +65,51 @@ function normalizeText(text) {
         .replace(/ى/g, 'ي');
 }
 
-// دالة ذكية تقوم برسم الصورة وتوليدها بنفسها من الصفر
-async function generateFastImage(word) {
-    // إنشاء لوحة عرض برمجية بحجم 400x150 بلون خلفية داكن وأنيق
-    const width = 400;
-    const height = 150;
-    const image = new Jimp(width, height, 0x1f1f22ff); // لون رمادي غامق احترافي
+// دالة لرسم الأشكال المنحنية والدوائر تماماً مثل التصميم المطلوب
+async function generateGameImage(word) {
+    const canvas = createCanvas(700, 320);
+    const ctx = canvas.getContext('2d');
 
-    // تحميل الخط الافتراضي المدمج في Jimp
-    const font = await Jimp.loadFont(Jimp.FONT_SANS_64_WHITE);
+    // 1. خلفية اللعبة الداكنة الأنيقة
+    ctx.fillStyle = '#0f1115';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // حساب مكان الكلمة لتكون في المنتصف تماماً بشكل تلقائي
-    const textWidth = Jimp.measureText(font, word);
-    const textHeight = Jimp.measureTextHeight(font, word, width);
+    // دالة مساعدة لرسم مربعات بدوائر منحنبة (Rounded Rectangles / Pills)
+    function drawRoundedRect(x, y, width, height, radius, fillColor, strokeColor) {
+        ctx.beginPath();
+        ctx.roundRect(x, y, width, height, radius);
+        if (fillColor) {
+            ctx.fillStyle = fillColor;
+            ctx.fill();
+        }
+        if (strokeColor) {
+            ctx.strokeStyle = strokeColor;
+            ctx.lineWidth = 3;
+            ctx.stroke();
+        }
+    }
+
+    // 2. المربع العلوي المنحنى (مكان العنوان والتنبيه)
+    drawRoundedRect(50, 25, 600, 60, 30, '#1a1d24', '#2b313d');
     
-    const x = (width - textWidth) / 2;
-    const y = (height - textHeight) / 2;
+    // نص العنوان العلوي داخل المربع المنحنى
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 22px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('⚡ أسرع بكتابة الكلمة (لديك 15 ثانية)', 350, 55);
 
-    // طباعة الكلمة على الصورة برمجياً
-    image.print(font, x, y, word);
+    // 3. المربع السفلي الكبير المنحنى (صندوق عرض الكلمة)
+    drawRoundedRect(50, 110, 600, 170, 35, '#161920', '#3a4454');
 
-    // استخراج الصورة كـ Buffer لترسل للديسكورد مباشرة
-    return new Promise((resolve, reject) => {
-        image.getBuffer(Jimp.MIME_PNG, (err, buffer) => {
-            if (err) reject(err);
-            else resolve(buffer);
-        });
-    });
+    // 4. كتابة الكلمة المستهدفة بوضوح تام في المنتصف داخل المربع السفلي
+    ctx.fillStyle = '#5865F2'; // لون مميز للكلمة
+    ctx.font = 'bold 55px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(word, 350, 195);
+
+    return canvas.toBuffer('image/png');
 }
 
 client.once('ready', () => {
@@ -124,22 +141,16 @@ client.on('messageCreate', async (message) => {
 
         activeChannels.add(channelId);
         
-        // اختيار كلمة عشوائية من القائمة الضخمة (أكثر من 300 كلمة)
+        // اختيار كلمة عشوائية من القائمة (أكثر من 300 كلمة بدون تكرار)
         const randomWord = wordsList[Math.floor(Math.random() * wordsList.length)];
 
         try {
-            // رسم وتوليد الصورة آلياً والكلمة في منتصفها
-            const buffer = await generateFastImage(randomWord);
+            // رسم الصورة بالكامل مع الأشكال الدائرية والكلمة بداخله
+            const buffer = await generateGameImage(randomWord);
             const attachment = new AttachmentBuilder(buffer, { name: 'fast_game.png' });
 
-            const gameEmbed = new EmbedBuilder()
-                .setTitle('⚡ لعبة أسرع بكتابة الكلمة!')
-                .setDescription('**اكتب الكلمة الظاهرة في الصورة بالأسفل بأسرع ما يمكنك!**\n⏳ لديك 15 ثانية')
-                .setImage('attachment://fast_game.png')
-                .setColor(0x5865F2);
-
+            // إرسال الصورة مباشرة **بدون أي كلام أو إيمبد فوقها** كما طلبت تماماً
             await message.channel.send({ 
-                embeds: [gameEmbed],
                 files: [attachment] 
             });
 
@@ -156,7 +167,7 @@ client.on('messageCreate', async (message) => {
                     }
                     activeChannels.delete(channelId);
                     collector.stop('won');
-                    m.channel.send(`🏆 كفو! الفائز هو <@${m.author.id}> بكتبته للكلمة: **${randomWord}**`);
+                    m.channel.send(`🏆 كفو! الفائز هو <@${m.author.id>> بكتبته للكلمة: **${randomWord}**`);
                 }
             });
 
@@ -169,14 +180,14 @@ client.on('messageCreate', async (message) => {
             });
 
         } catch (error) {
-            console.error("خطأ أثناء توليد ورسم صورة أسرع:", error);
+            console.error("خطأ أثناء توليد الرسم:", error);
             activeChannels.delete(channelId);
             return message.reply(`حدث خطأ أثناء إنشاء اللعبة: ${error.message}`);
         }
     }
 });
 
-// سيرفر وهمي للحفاظ على نشاط البوت على منصات مثل Render
+// سيرفر ويب للحفاظ على تشغيل البوت على Render
 const http = require('http');
 const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
