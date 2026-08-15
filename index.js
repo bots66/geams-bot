@@ -4,7 +4,6 @@ const {
     AttachmentBuilder 
 } = require('discord.js');
 const { createCanvas } = require('@napi-rs/canvas');
-const { ArabicReshaper } = require('arabic-persian-reshaper');
 
 const client = new Client({
     intents: [
@@ -18,7 +17,7 @@ const client = new Client({
 const activeGames = new Map();
 const activeChannels = new Set();
 
-// قائمة الكلمات (أكثر من 300 كلمة لمنع التكرار)
+// قائمة الكلمات (مكتوبة بشكل متصل وصحيح مباشرة)
 const wordsList = [
     "ضابط", "تفاحة", "سفينة", "طائرة", "سيارة", "قلم", "كتاب", "حاسوب", "هاتف", "طاولة", "كرسي",
     "شباك", "باب", "شمس", "قمر", "نجمة", "سحاب", "مطر", "بحر", "نهر", "جبل",
@@ -66,12 +65,11 @@ function normalizeText(text) {
         .replace(/ى/g, 'ي');
 }
 
-// دالة رسم الصورة بالتصميم الجديد والمقسوم للأعلى
+// دالة رسم التصميم المطلوب بالصناديق المنفصلة
 async function generateGameImage(word) {
     const canvas = createCanvas(700, 320);
     const ctx = canvas.getContext('2d');
 
-    // الخلفية الداكنة
     ctx.fillStyle = '#0f1115';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -89,7 +87,7 @@ async function generateGameImage(word) {
         }
     }
 
-    // 1. المربع العلوي الأيمن (خاص بـ: أسرع بكتابة الكلمة)
+    // 1. المربع العلوي الأيمن (أسرع بكتابة الكلمة)
     drawRoundedRect(365, 25, 285, 55, 25, '#1a1d24', '#2b313d');
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 20px sans-serif';
@@ -97,7 +95,7 @@ async function generateGameImage(word) {
     ctx.textBaseline = 'middle';
     ctx.fillText('أسرع بكتابة الكلمة', 507, 52);
 
-    // 2. المربع العلوي الأيسر (خاص بالوقت وعلامة البرق: ⚡ لديك 15 ثانية)
+    // 2. المربع العلوي الأيسر (⚡ لديك 15 ثانية)
     drawRoundedRect(50, 25, 305, 55, 25, '#1a1d24', '#2b313d');
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 18px sans-serif';
@@ -105,17 +103,15 @@ async function generateGameImage(word) {
     ctx.textBaseline = 'middle';
     ctx.fillText('⚡ لديك 15 ثانية', 202, 52);
 
-    // 3. المربع السفلي الكبير (الخاص بالكلمة المستهدفة)
+    // 3. المربع السفلي الكبير (الكلمة المستهدفة)
     drawRoundedRect(50, 105, 600, 180, 35, '#161920', '#3a4454');
 
-    // معالجة وربط الحروف العربية لتتصل ببعضها بدون مسافات وبنفس اللون المطلوب
-    const shapedWord = ArabicReshaper.convertArabic(word);
-    
-    ctx.fillStyle = '#5865F2'; // نفس اللون السابق
+    // طباعة الكلمة بوضوح
+    ctx.fillStyle = '#5865F2';
     ctx.font = 'bold 55px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(shapedWord, 350, 195);
+    ctx.fillText(word, 350, 195);
 
     return canvas.toBuffer('image/png');
 }
