@@ -181,7 +181,7 @@ async function generateFlagGameImage(flagObj) {
     return canvas.toBuffer('image/png');
 }
 
-async function generateRouletteWheelImage(participants, targetUser, arrowAngle = 0, isWinnerDisplay = false) {
+async function generateRouletteWheelImage(participants, targetUser, isWinnerDisplay = false) {
     const canvas = createCanvas(600, 600);
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -224,17 +224,13 @@ async function generateRouletteWheelImage(participants, targetUser, arrowAngle =
     ctx.lineWidth = 12;
     ctx.stroke();
 
+    // رسم سهم أسود صغير في الزاوية/الجنب يشير للداخل
     if (!isWinnerDisplay) {
         ctx.save();
-        ctx.translate(centerX, centerY);
-        ctx.rotate(arrowAngle);
-        ctx.translate(-centerX, -centerY);
-
         ctx.beginPath();
-        ctx.moveTo(canvas.width - 15, centerY - 12);
-        ctx.lineTo(canvas.width - 2, centerY);
-        ctx.moveTo(canvas.width - 15, centerY + 12);
-        ctx.lineTo(canvas.width - 2, centerY);
+        ctx.moveTo(canvas.width - 25, centerY - 10);
+        ctx.lineTo(canvas.width - 5, centerY);
+        ctx.lineTo(canvas.width - 25, centerY + 10);
         ctx.fillStyle = '#000000';
         ctx.fill();
         ctx.restore();
@@ -518,47 +514,22 @@ async function runRouletteRound(channel, guildId, channelId, participants) {
         activeGames.delete(guildId);
         activeChannels.delete(channelId);
 
-        const winBuffer = await generateRouletteWheelImage([winner], winner, 0, true);
+        const winBuffer = await generateRouletteWheelImage([winner], winner, true);
         const winAttachment = new AttachmentBuilder(winBuffer, { name: 'roulette_win.png' });
         return channel.send({ content: `@here\n<@!${winner.id}>`, files: [winAttachment] });
     }
 
     const targetPlayer = participants[Math.floor(Math.random() * participants.length)];
     
-    let arrowAngle = 0;
-    const initialWheelBuffer = await generateRouletteWheelImage(participants, targetPlayer, arrowAngle, false);
-    const wheelMessage = await channel.send({
-        files: [new AttachmentBuilder(initialWheelBuffer, { name: 'roulette_wheel.png' })]
-    });
-
-    const startTime = Date.now();
-    const totalDuration = 6000;
+    // إرسال الصورة مباشرة بدون أي تكرار أو وميض
+    const wheelBuffer = await generateRouletteWheelImage(participants, targetPlayer, false);
     
-    while (Date.now() - startTime < totalDuration) {
-        const elapsed = Date.now() - startTime;
-        let speed = 0.4;
-        
-        if (elapsed > 4000) {
-            const progress = (elapsed - 4000) / 2000;
-            speed = 0.4 * (1 - progress) + 0.02;
-        }
-
-        arrowAngle += speed;
-        
-        const rotatedBuffer = await generateRouletteWheelImage(participants, targetPlayer, arrowAngle, false);
-        await wheelMessage.edit({
-            files: [new AttachmentBuilder(rotatedBuffer, { name: 'roulette_wheel.png' })]
-        }).catch(() => {});
-
-        await new Promise(r => setTimeout(r, 100));
-    }
-
-    // فلترة الأزرار بحيث لا يظهر زر الشخص المستهدف (حتى لا يستطيع طرد نفسه)
+    // تجهيز الأزرار مع استثناء الشخص الواقف عليه حتى لا يطرد نفسه
     let rows = [];
     let currentRow = new ActionRowBuilder();
     
-    participants.forEach((p, index) => {
-        if (p.id === targetPlayer.id) return; // استثناء الشخص الواقف عليه حتى لا يطرد نفسه
+    participants.forEach((p) => {
+        if (p.id === targetPlayer.id) return;
 
         if (currentRow.components.length >= 4) {
             rows.push(currentRow);
@@ -589,17 +560,17 @@ async function runRouletteRound(channel, guildId, channelId, participants) {
     );
     rows.push(bottomRow);
 
-    await wheelMessage.edit({
+    const wheelMessage = await channel.send({
         content: `<@!${targetPlayer.id}> , لديك **15 ثانية** لاختيار لاعب لطرده 🦵`,
+        files: [new AttachmentBuilder(wheelBuffer, { name: 'roulette_wheel.png' })],
         components: rows
-    }).catch(() => {});
+    });
 
     const collector = wheelMessage.createMessageComponentCollector({ time: 15000 });
 
     collector.on('collect', async (interaction) => {
         const userId = interaction.user.id;
         
-        // التحقق: فقط الشخص المستهدف هو من يحق له اختيار لاعب للطرد أو الانسحاب
         if (userId !== targetPlayer.id) {
             return interaction.reply({ content: 'ليس دورك لاختيار اللاعب!', ephemeral: true });
         }
