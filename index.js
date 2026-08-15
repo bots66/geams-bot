@@ -7,6 +7,7 @@ const {
     ButtonStyle 
 } = require('discord.js');
 const { createCanvas, loadImage } = require('@napi-rs/canvas');
+const GIFEncoder = require('gifencoder');
 const http = require('http');
 
 const client = new Client({
@@ -181,7 +182,8 @@ async function generateFlagGameImage(flagObj) {
     return canvas.toBuffer('image/png');
 }
 
-async function generateRouletteWheelImage(participants, targetUser, isWinnerDisplay = false) {
+// دالة توليد صورة الفائز النهائية الثابتة
+async function generateWinnerWheelImage(participants, targetUser) {
     const canvas = createCanvas(600, 600);
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -224,18 +226,6 @@ async function generateRouletteWheelImage(participants, targetUser, isWinnerDisp
     ctx.lineWidth = 12;
     ctx.stroke();
 
-    // رسم سهم أسود صغير في الزاوية/الجنب يشير للداخل
-    if (!isWinnerDisplay) {
-        ctx.save();
-        ctx.beginPath();
-        ctx.moveTo(canvas.width - 25, centerY - 10);
-        ctx.lineTo(canvas.width - 5, centerY);
-        ctx.lineTo(canvas.width - 25, centerY + 10);
-        ctx.fillStyle = '#000000';
-        ctx.fill();
-        ctx.restore();
-    }
-
     const avatarRadius = 75;
     ctx.save();
     ctx.beginPath();
@@ -258,29 +248,145 @@ async function generateRouletteWheelImage(participants, targetUser, isWinnerDisp
     ctx.lineWidth = 6;
     ctx.stroke();
 
-    if (isWinnerDisplay) {
-        const boxWidth = 260;
-        const boxHeight = 50;
-        const boxX = centerX - boxWidth / 2;
-        const boxY = centerY + avatarRadius + 15;
+    const boxWidth = 260;
+    const boxHeight = 50;
+    const boxX = centerX - boxWidth / 2;
+    const boxY = centerY + avatarRadius + 15;
 
-        ctx.beginPath();
-        ctx.roundRect(boxX, boxY, boxWidth, boxHeight, 25);
-        ctx.fillStyle = '#ffffff';
-        ctx.fill();
-        ctx.strokeStyle = '#e0e0e0';
-        ctx.lineWidth = 3;
-        ctx.stroke();
+    ctx.beginPath();
+    ctx.roundRect(boxX, boxY, boxWidth, boxHeight, 25);
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+    ctx.strokeStyle = '#e0e0e0';
+    ctx.lineWidth = 3;
+    ctx.stroke();
 
-        ctx.fillStyle = '#000000';
-        ctx.font = 'bold 22px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        const winnerName = targetUser.displayName || targetUser.username;
-        ctx.fillText(winnerName.substring(0, 15), centerX, boxY + boxHeight / 2);
-    }
+    ctx.fillStyle = '#000000';
+    ctx.font = 'bold 22px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const winnerName = targetUser.displayName || targetUser.username;
+    ctx.fillText(winnerName.substring(0, 15), centerX, boxY + boxHeight / 2);
 
     return canvas.toBuffer('image/png');
+}
+
+// دالة إنشاء ملف الـ GIF بحيث تكون العجلة والأسماء ثابتة والسهم يدور فقط ثم يقف عند الفائز المستهدف
+async function generateRouletteWheelGif(participants, targetPlayer) {
+    const width = 600;
+    const height = 600;
+    const canvas = createCanvas(width, height);
+    const ctx = canvas.getContext('2d');
+
+    const encoder = new GIFEncoder(width, height);
+    encoder.start();
+    encoder.setRepeat(0);
+    encoder.setDelay(50);
+    encoder.setQuality(10);
+
+    // تجهيز العجلة الثابتة في الخلفية (Base Canvas) لعدم إعادة رسمها في كل إطار
+    const baseCanvas = createCanvas(width, height);
+    const bCtx = baseCanvas.getContext('2d');
+
+    const centerX = 300;
+    const centerY = 300;
+    const radius = 280;
+    const count = participants.length;
+    const angleStep = (Math.PI * 2) / count;
+
+    participants.forEach((p, i) => {
+        const startAngle = i * angleStep - Math.PI / 2;
+        const endAngle = (i + 1) * angleStep - Math.PI / 2;
+
+        bCtx.beginPath();
+        bCtx.moveTo(centerX, centerY);
+        bCtx.arc(centerX, centerY, radius, startAngle, endAngle);
+        bCtx.closePath();
+
+        bCtx.fillStyle = '#f8f9fa';
+        bCtx.fill();
+        bCtx.strokeStyle = '#000000';
+        bCtx.lineWidth = 4;
+        bCtx.stroke();
+
+        bCtx.save();
+        bCtx.translate(centerX, centerY);
+        bCtx.rotate(startAngle + angleStep / 2);
+        bCtx.textAlign = 'right';
+        bCtx.fillStyle = '#000000';
+        bCtx.font = 'bold 20px sans-serif';
+        const displayName = p.displayName || p.username;
+        bCtx.fillText(displayName.substring(0, 12), radius - 50, 10);
+        bCtx.restore();
+    });
+
+    bCtx.beginPath();
+    bCtx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+    bCtx.strokeStyle = '#000000';
+    bCtx.lineWidth = 12;
+    bCtx.stroke();
+
+    const avatarRadius = 75;
+    bCtx.save();
+    bCtx.beginPath();
+    bCtx.arc(centerX, centerY, avatarRadius, 0, Math.PI * 2);
+    bCtx.closePath();
+    bCtx.clip();
+
+    try {
+        const avatarImg = await loadImage(targetPlayer.displayAvatarURL({ extension: 'png', size: 256 }));
+        bCtx.drawImage(avatarImg, centerX - avatarRadius, centerY - avatarRadius, avatarRadius * 2, avatarRadius * 2);
+    } catch (e) {
+        bCtx.fillStyle = '#cccccc';
+        bCtx.fillRect(centerX - avatarRadius, centerY - avatarRadius, avatarRadius * 2, avatarRadius * 2);
+    }
+    bCtx.restore();
+
+    bCtx.beginPath();
+    bCtx.arc(centerX, centerY, avatarRadius, 0, Math.PI * 2);
+    bCtx.strokeStyle = '#000000';
+    bCtx.lineWidth = 6;
+    bCtx.stroke();
+
+    // حساب زاوية التوقف بدقة ليقف السهم عند مكان اللاعب المستهدف
+    const targetIndex = participants.findIndex(p => p.id === targetPlayer.id);
+    const targetSectorCenter = targetIndex * angleStep + angleStep / 2 - Math.PI / 2;
+    const totalSpins = 5; // عدد اللفات الكاملة
+    const finalAngle = (Math.PI * 2 * totalSpins) + targetSectorCenter;
+    const totalFrames = 30;
+
+    for (let frame = 0; frame < totalFrames; frame++) {
+        const progress = frame / (totalFrames - 1);
+        const easedProgress = 1 - Math.pow(1 - progress, 3);
+        const currentAngle = finalAngle * easedProgress;
+
+        ctx.clearRect(0, 0, width, height);
+        // رسم العجلة الثابتة
+        ctx.drawImage(baseCanvas, 0, 0);
+
+        // رسم السهم المتحرك فقط على الحافة
+        ctx.save();
+        ctx.translate(centerX, centerY);
+        ctx.rotate(currentAngle);
+
+        ctx.beginPath();
+        ctx.moveTo(radius - 15, 0);
+        ctx.lineTo(radius + 15, -10);
+        ctx.lineTo(radius + 15, 10);
+        ctx.closePath();
+        ctx.fillStyle = '#ff3b30';
+        ctx.fill();
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.restore();
+
+        encoder.addFrame(ctx);
+    }
+
+    encoder.finish();
+    return encoder.out.getData();
 }
 
 client.once('ready', () => {
@@ -514,17 +620,18 @@ async function runRouletteRound(channel, guildId, channelId, participants) {
         activeGames.delete(guildId);
         activeChannels.delete(channelId);
 
-        const winBuffer = await generateRouletteWheelImage([winner], winner, true);
+        const winBuffer = await generateWinnerWheelImage([winner], winner);
         const winAttachment = new AttachmentBuilder(winBuffer, { name: 'roulette_win.png' });
         return channel.send({ content: `@here\n<@!${winner.id}>`, files: [winAttachment] });
     }
 
     const targetPlayer = participants[Math.floor(Math.random() * participants.length)];
     
-    // إرسال الصورة مباشرة بدون أي تكرار أو وميض
-    const wheelBuffer = await generateRouletteWheelImage(participants, targetPlayer, false);
-    
-    // تجهيز الأزرار مع استثناء الشخص الواقف عليه حتى لا يطرد نفسه
+    // توليد وإرسال صورة السهم المتحرك (GIF)
+    const gifBuffer = await generateRouletteWheelGif(participants, targetPlayer);
+    const gifAttachment = new AttachmentBuilder(gifBuffer, { name: 'roulette_wheel.gif' });
+
+    // تجهيز الأزرار مع استثناء الشخص الواقف عليه
     let rows = [];
     let currentRow = new ActionRowBuilder();
     
@@ -562,7 +669,7 @@ async function runRouletteRound(channel, guildId, channelId, participants) {
 
     const wheelMessage = await channel.send({
         content: `<@!${targetPlayer.id}> , لديك **15 ثانية** لاختيار لاعب لطرده 🦵`,
-        files: [new AttachmentBuilder(wheelBuffer, { name: 'roulette_wheel.png' })],
+        files: [gifAttachment],
         components: rows
     });
 
