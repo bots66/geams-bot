@@ -76,21 +76,7 @@ const popularFlags = [
     { name: "اليابان", code: "jp" }, { name: "كوريا الجنوبية", code: "kr" }, { name: "الصين", code: "cn" },
     { name: "الهند", code: "in" }, { name: "كندا", code: "ca" }, { name: "استراليا", code: "au" },
     { name: "ماليزيا", code: "my" }, { name: "إندونيسيا", code: "id" }, { name: "سنغافورة", code: "sg" },
-    { name: "روسيا", code: "ru" }, { name: "المكسيك", code: "mx" }, { name: "جنوب افريقيا", code: "za" },
-    { name: "استونيا", code: "ee" }, { name: "لاتفيا", code: "lv" }, { name: "ليتوانيا", code: "lt" },
-    { name: "فنلندا", code: "fi" }, { name: "السويد", code: "se" }, { name: "النرويج", code: "no" },
-    { name: "الدنمارك", code: "dk" }, { name: "ايسلندا", code: "is" }, { name: "سويسرا", code: "ch" },
-    { name: "النمسا", code: "at" }, { name: "بلجيكا", code: "be" }, { name: "هولندا", code: "nl" },
-    { name: "البرتغال", code: "pt" }, { name: "اليونان", code: "gr" }, { name: "بولندا", code: "pl" },
-    { name: "المجر", code: "hu" }, { name: "تشيك", code: "cz" }, { name: "رومانيا", code: "ro" },
-    { name: "بلغاريا", code: "bg" }, { name: "صربيا", code: "rs" }, { name: "كرواتيا", code: "hr" },
-    { name: "سلوفاكيا", code: "sk" }, { name: "سلوفينيا", code: "si" }, { name: "ألبانيا", code: "al" },
-    { name: "قبرص", code: "cy" }, { name: "مالطا", code: "mt" }, { name: "لوكسمبورغ", code: "lu" },
-    { name: "أيرلندا", code: "ie" }, { name: "فيتنام", code: "vn" }, { name: "تايلاند", code: "th" },
-    { name: "الفلبين", code: "ph" }, { name: "باكستان", code: "pk" }, { name: "بنغلاديش", code: "bd" },
-    { name: "نيبال", code: "np" }, { name: "سريلانكا", code: "lk" }, { name: "إيران", code: "ir" },
-    { name: "نيوزيلندا", code: "nz" }, { name: "تشيلي", code: "cl" }, { name: "كولومبيا", code: "co" },
-    { name: "بيرو", code: "pe" }
+    { name: "روسيا", code: "ru" }, { name: "المكسيك", code: "mx" }, { name: "جنوب افريقيا", code: "za" }
 ];
 
 let usedFlags = [];
@@ -190,14 +176,12 @@ async function generateFlagGameImage(flagObj) {
         ctx.clip();
         ctx.drawImage(img, 180, 125, 340, 145);
         ctx.restore();
-    } catch (e) {
-        console.error("خطأ في تحميل صورة العلم:", e);
-    }
+    } catch (e) {}
 
     return canvas.toBuffer('image/png');
 }
 
-async function generateRouletteWheelImage(participants, targetUser) {
+async function generateRouletteWheelImage(participants, targetUser, rotationAngle = 0) {
     const canvas = createCanvas(600, 600);
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -208,7 +192,11 @@ async function generateRouletteWheelImage(participants, targetUser) {
     const count = participants.length;
     const angleStep = (Math.PI * 2) / count;
 
-    // رسم أقسام العجلة
+    ctx.save();
+    ctx.translate(centerX, centerY);
+    ctx.rotate(rotationAngle);
+    ctx.translate(-centerX, -centerY);
+
     participants.forEach((p, i) => {
         const startAngle = i * angleStep - Math.PI / 2;
         const endAngle = (i + 1) * angleStep - Math.PI / 2;
@@ -224,7 +212,6 @@ async function generateRouletteWheelImage(participants, targetUser) {
         ctx.lineWidth = 4;
         ctx.stroke();
 
-        // كتابة يوزر اللاعب داخل القسم
         ctx.save();
         ctx.translate(centerX, centerY);
         ctx.rotate(startAngle + angleStep / 2);
@@ -235,12 +222,13 @@ async function generateRouletteWheelImage(participants, targetUser) {
         ctx.restore();
     });
 
-    // الدائرة الخارجية السوداء العريضة
     ctx.beginPath();
     ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
     ctx.strokeStyle = '#000000';
     ctx.lineWidth = 12;
     ctx.stroke();
+
+    ctx.restore();
 
     // السهم الأسود على اليمين
     ctx.beginPath();
@@ -267,7 +255,6 @@ async function generateRouletteWheelImage(participants, targetUser) {
     }
     ctx.restore();
 
-    // حدود دائرة الأفاتار
     ctx.beginPath();
     ctx.arc(centerX, centerY, avatarRadius, 0, Math.PI * 2);
     ctx.strokeStyle = '#000000';
@@ -294,9 +281,7 @@ client.on('messageCreate', async (message) => {
         }
 
         if (message.author.id !== allowedRoleId) {
-            try {
-                await message.react('❌');
-            } catch (e) {}
+            try { await message.react('❌'); } catch (e) {}
             return;
         }
 
@@ -306,9 +291,7 @@ client.on('messageCreate', async (message) => {
         activeGames.delete(guildId);
         activeChannels.delete(channelId);
         
-        try {
-            await message.react('✅');
-        } catch (e) {}
+        try { await message.react('✅'); } catch (e) {}
         return;
     }
 
@@ -340,7 +323,12 @@ client.on('messageCreate', async (message) => {
             participants,
             lobbyMessage,
             timeoutTimer: setTimeout(async () => {
-                startRouletteGame(message.channel, guildId, channelId, participants, lobbyMessage);
+                if (participants.length < 3) {
+                    activeGames.delete(guildId);
+                    activeChannels.delete(channelId);
+                    return message.channel.send('العدد غير مكتمل');
+                }
+                startRouletteGame(message.channel, guildId, channelId, participants);
             }, 30000)
         };
 
@@ -363,16 +351,16 @@ client.on('messageCreate', async (message) => {
                 participants.push(userObj);
                 await interaction.reply({ content: 'تم الانضمام', ephemeral: true });
 
+                // تعديل النص فقط بدون تحديث مرفق الصورة لمنع الوميض والاسوداد
                 await lobbyMessage.edit({ 
                     content: `@here\n${participants.length}/20`, 
-                    files: [rouletteLobbyImageUrl], 
                     components: [row] 
                 }).catch(() => {});
 
                 if (participants.length === 20) {
                     clearTimeout(gameData.timeoutTimer);
                     collector.stop();
-                    startRouletteGame(message.channel, guildId, channelId, participants, lobbyMessage);
+                    startRouletteGame(message.channel, guildId, channelId, participants);
                 }
             } else if (interaction.customId === 'r_leave') {
                 const index = participants.findIndex(p => p.id === userId);
@@ -384,7 +372,6 @@ client.on('messageCreate', async (message) => {
 
                 await lobbyMessage.edit({ 
                     content: `@here\n${participants.length}/20`, 
-                    files: [rouletteLobbyImageUrl], 
                     components: [row] 
                 }).catch(() => {});
             }
@@ -427,11 +414,8 @@ client.on('messageCreate', async (message) => {
                     message.channel.send('انتهى الوقت');
                 }
             });
-
         } catch (error) {
-            console.error("خطأ أثناء توليد الرسم:", error);
             activeChannels.delete(channelId);
-            return message.reply(`حدث خطأ أثناء إنشاء اللعبة: ${error.message}`);
         }
     }
 
@@ -445,9 +429,9 @@ client.on('messageCreate', async (message) => {
 
         try {
             const buffer = await generateFlagGameImage(flagObj);
-            const attachment = new AttachmentBuilder(buffer, { name: 'flag_game.png' });
+            const attachment = new AttachmentBuilder(flagObj, { name: 'flag_game.png' });
 
-            await message.channel.send({ files: [attachment] });
+            await message.channel.send({ files: [new AttachmentBuilder(buffer, { name: 'flag.png' })] });
 
             activeGames.set(guildId, { type: 'flag', answer: flagObj.name });
 
@@ -471,20 +455,17 @@ client.on('messageCreate', async (message) => {
                     message.channel.send(`انتهى الوقت! البلد هي: ${flagObj.name}`);
                 }
             });
-
         } catch (error) {
-            console.error("خطأ أثناء توليد رسم العلم:", error);
             activeChannels.delete(channelId);
-            return message.reply(`حدث خطأ أثناء إنشاء لعبة الأعلام: ${error.message}`);
         }
     }
 });
 
-async function startRouletteGame(channel, guildId, channelId, participants, lobbyMessage) {
+async function startRouletteGame(channel, guildId, channelId, participants) {
     if (participants.length < 3) {
         activeGames.delete(guildId);
         activeChannels.delete(channelId);
-        return channel.send('العدد غير مكتمل لكي تبدأ اللعبة');
+        return channel.send('العدد غير مكتمل');
     }
 
     await channel.send('⏳ تم الانتهاء من تسجيل الارقام ستبدأ الجولة خلال ثواني .');
@@ -496,22 +477,32 @@ async function startRouletteGame(channel, guildId, channelId, participants, lobb
 async function runRouletteRound(channel, guildId, channelId, participants) {
     if (participants.length === 2) {
         const targetPlayer = participants[Math.floor(Math.random() * participants.length)];
-        const wheelBuffer = await generateRouletteWheelImage(participants, targetPlayer);
-        const wheelAttachment = new AttachmentBuilder(wheelBuffer, { name: 'roulette_wheel.png' });
-        await channel.send({ files: [wheelAttachment] });
-
         const winner = participants.filter(p => p.id !== targetPlayer.id)[0];
         activeGames.delete(guildId);
         activeChannels.delete(channelId);
 
-        const winBuffer = await generateRouletteWheelImage([winner], winner);
+        const winBuffer = await generateRouletteWheelImage([winner], winner, 0);
         const winAttachment = new AttachmentBuilder(winBuffer, { name: 'roulette_win.png' });
         return channel.send({ content: `@here\n${winner.username}`, files: [winAttachment] });
     }
 
     const targetPlayer = participants[Math.floor(Math.random() * participants.length)];
-    const wheelBuffer = await generateRouletteWheelImage(participants, targetPlayer);
-    const wheelAttachment = new AttachmentBuilder(wheelBuffer, { name: 'roulette_wheel.png' });
+    
+    // محاكاة حركة الدوران التدريجية للعجلة
+    let currentAngle = 0;
+    const initialWheelBuffer = await generateRouletteWheelImage(participants, targetPlayer, currentAngle);
+    const wheelMessage = await channel.send({
+        files: [new AttachmentBuilder(initialWheelBuffer, { name: 'roulette_wheel.png' })]
+    });
+
+    for (let step = 0; step < 5; step++) {
+        await new Promise(r => setTimeout(r, 300));
+        currentAngle += Math.PI / 3;
+        const rotatedBuffer = await generateRouletteWheelImage(participants, targetPlayer, currentAngle);
+        await wheelMessage.edit({
+            files: [new AttachmentBuilder(rotatedBuffer, { name: 'roulette_wheel.png' })]
+        }).catch(() => {});
+    }
 
     let rows = [];
     let currentRow = new ActionRowBuilder();
@@ -541,13 +532,12 @@ async function runRouletteRound(channel, guildId, channelId, participants) {
     );
     rows.push(randomRow);
 
-    const gameMessage = await channel.send({
+    await wheelMessage.edit({
         content: `<@!${targetPlayer.id}> , لديك **15 ثانية** لاختيار لاعب لطرده 🦵`,
-        files: [wheelAttachment],
         components: rows
-    });
+    }).catch(() => {});
 
-    const collector = gameMessage.createMessageComponentCollector({ time: 15000 });
+    const collector = wheelMessage.createMessageComponentCollector({ time: 15000 });
 
     collector.on('collect', async (interaction) => {
         let kickedUser = null;
