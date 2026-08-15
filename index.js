@@ -4,7 +4,6 @@ const {
     AttachmentBuilder 
 } = require('discord.js');
 const { createCanvas, GlobalFonts } = require('@napi-rs/canvas');
-const { ArabicReshaper } = require('arabic-persian-reshaper');
 const fs = require('fs');
 const https = require('https');
 const path = require('path');
@@ -119,17 +118,16 @@ async function generateGameImage(word) {
     ctx.textBaseline = 'middle';
     ctx.fillText('⚡ لديك 15 ثانية', 202, 52);
 
-    // 3. المربع السفلي الكبير (الكلمة المستهدفة)
+    // 3. المربع السفلي الكبير (الكلمة المستهدفة مقلوبة لتتصل الحروف بشكل صحيح وسليم)
     drawRoundedRect(50, 105, 600, 180, 35, '#161920', '#3a4454');
 
-    // معالجة الكلمة لضمان اتصال الحروف وعدم تباعدها
-    const shapedWord = ArabicReshaper.convertArabic(word);
+    const reversedWord = word.split('').reverse().join('');
 
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 55px Cairo, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(shapedWord, 350, 195);
+    ctx.fillText(reversedWord, 350, 195);
 
     return canvas.toBuffer('image/png');
 }
@@ -186,7 +184,7 @@ client.on('messageCreate', async (message) => {
                     }
                     activeChannels.delete(channelId);
                     collector.stop('won');
-                    // رسالة الفوز بدون زوائد (المنشن فقط)
+                    // رسالة الفوز (المنشن فقط)
                     m.channel.send(`<@${m.author.id}>`);
                 }
             });
@@ -195,7 +193,7 @@ client.on('messageCreate', async (message) => {
                 if (reason !== 'won' && activeGames.has(guildId)) {
                     activeGames.delete(guildId);
                     activeChannels.delete(channelId);
-                    // رسالة انتهاء الوقت بدون زوائد
+                    // رسالة انتهاء الوقت بالضبط
                     message.channel.send('انتهى الوقت');
                 }
             });
