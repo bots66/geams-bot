@@ -270,7 +270,7 @@ async function generateWinnerWheelImage(participants, targetUser) {
     return canvas.toBuffer('image/png');
 }
 
-// دالة إنشاء الـ GIF: السهم يلف ويهدي ويقف نهائياً عند الفائز
+// دالة الـ GIF: السهم يلف ويهدي ويقف نهائياً بدون تكرار إطلاقاً (Repeat = -1)
 async function generateRouletteWheelGif(participants, targetPlayer) {
     const width = 600;
     const height = 600;
@@ -279,8 +279,8 @@ async function generateRouletteWheelGif(participants, targetPlayer) {
 
     const encoder = new GIFEncoder(width, height);
     encoder.start();
-    encoder.setRepeat(0); // حلقة واحدة فقط بدون تكرار
-    encoder.setDelay(50);
+    encoder.setRepeat(-1); // عدم تكرار الـ GIF نهائياً، يتوقف عند آخر إطار
+    encoder.setDelay(60);
     encoder.setQuality(10);
     encoder.setTransparent(0x000000);
 
@@ -352,7 +352,7 @@ async function generateRouletteWheelGif(participants, targetPlayer) {
     const targetSectorCenter = targetIndex * angleStep + angleStep / 2 - Math.PI / 2;
     const totalSpins = 5;
     const finalAngle = (Math.PI * 2 * totalSpins) + targetSectorCenter;
-    const totalFrames = 35;
+    const totalFrames = 30;
 
     for (let frame = 0; frame < totalFrames; frame++) {
         const progress = frame / (totalFrames - 1);
@@ -606,10 +606,7 @@ async function startRouletteGame(channel, guildId, channelId, participants) {
         return channel.send('العدد غير مكتمل');
     }
 
-    await channel.send('⏳ تم الانتهاء من تسجيل الارقام ستبدأ الجولة خلال ثواني .');
-    setTimeout(() => {
-        runRouletteRound(channel, guildId, channelId, participants);
-    }, 1000);
+    runRouletteRound(channel, guildId, channelId, participants);
 }
 
 async function runRouletteRound(channel, guildId, channelId, participants) {
@@ -625,6 +622,7 @@ async function runRouletteRound(channel, guildId, channelId, participants) {
 
     const targetPlayer = participants[Math.floor(Math.random() * participants.length)];
     
+    // إنشاء الـ GIF الخاص بالعجلة (تلف وتتوقف عند الفائز تماماً ولا تتكرر نهائياً)
     const gifBuffer = await generateRouletteWheelGif(participants, targetPlayer);
     const gifAttachment = new AttachmentBuilder(gifBuffer, { name: 'roulette_wheel.gif' });
 
@@ -663,6 +661,7 @@ async function runRouletteRound(channel, guildId, channelId, participants) {
     );
     rows.push(bottomRow);
 
+    // إرسال العجلة مع الأزرار ومنشن الشخص فوراً بعد انتهاء الـ 30 ثانية بدون رسائل إضافية
     const wheelMessage = await channel.send({
         content: `<@!${targetPlayer.id}> , لديك **15 ثانية** لاختيار لاعب لطرده 🦵`,
         files: [gifAttachment],
