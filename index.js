@@ -270,7 +270,7 @@ async function generateWinnerWheelImage(participants, targetUser) {
     return canvas.toBuffer('image/png');
 }
 
-// دالة إنشاء الـ GIF: تلف وتبطا وتستقر عند الشخص تماماً بدون تكرار
+// دالة إنشاء الـ GIF: السهم يلف ويهدي ويقف نهائياً عند الفائز
 async function generateRouletteWheelGif(participants, targetPlayer) {
     const width = 600;
     const height = 600;
@@ -279,7 +279,7 @@ async function generateRouletteWheelGif(participants, targetPlayer) {
 
     const encoder = new GIFEncoder(width, height);
     encoder.start();
-    encoder.setRepeat(0); // حلقة واحدة فقط بدون تكرار مستمر
+    encoder.setRepeat(0); // حلقة واحدة فقط بدون تكرار
     encoder.setDelay(50);
     encoder.setQuality(10);
     encoder.setTransparent(0x000000);
@@ -429,6 +429,7 @@ client.on('messageCreate', async (message) => {
         activeChannels.add(channelId);
         let participants = [];
         let timeLeft = 30;
+        const targetTimestamp = Math.floor(Date.now() / 1000) + timeLeft;
 
         const row = new ActionRowBuilder().addComponents(
             new ButtonBuilder().setCustomId('r_join').setLabel('انضمام').setStyle(ButtonStyle.Secondary),
@@ -436,7 +437,7 @@ client.on('messageCreate', async (message) => {
         );
 
         const lobbyMessage = await message.channel.send({
-            content: `@here\n0/20\nمتبقي لبداية اللعبة 30 ثانية`,
+            content: `@here\n**عدد اللاعبين 0/20**\n**ستبدأ اللعبه خلال : <t:${targetTimestamp}:R>**`,
             files: [rouletteLobbyImageUrl],
             components: [row]
         });
@@ -448,7 +449,7 @@ client.on('messageCreate', async (message) => {
                 return;
             }
             await lobbyMessage.edit({
-                content: `@here\n${participants.length}/20\nمتبقي لبداية اللعبة ${timeLeft} ثانية`,
+                content: `@here\n**عدد اللاعبين ${participants.length}/20**\n**ستبدأ اللعبه خلال : <t:${targetTimestamp}:R>**`,
                 components: [row]
             }).catch(() => {});
         }, 1000);
@@ -489,7 +490,7 @@ client.on('messageCreate', async (message) => {
                 await interaction.reply({ content: 'تم الانضمام', ephemeral: true });
 
                 await lobbyMessage.edit({ 
-                    content: `@here\n${participants.length}/20\nمتبقي لبداية اللعبة ${timeLeft} ثانية`, 
+                    content: `@here\n**عدد اللاعبين ${participants.length}/20**\n**ستبدأ اللعبه خلال : <t:${targetTimestamp}:R>**`, 
                     components: [row] 
                 }).catch(() => {});
 
@@ -508,7 +509,7 @@ client.on('messageCreate', async (message) => {
                 await interaction.reply({ content: 'تم الانسحاب', ephemeral: true });
 
                 await lobbyMessage.edit({ 
-                    content: `@here\n${participants.length}/20\nمتبقي لبداية اللعبة ${timeLeft} ثانية`, 
+                    content: `@here\n**عدد اللاعبين ${participants.length}/20**\n**ستبدأ اللعبه خلال : <t:${targetTimestamp}:R>**`, 
                     components: [row] 
                 }).catch(() => {});
             }
@@ -624,7 +625,6 @@ async function runRouletteRound(channel, guildId, channelId, participants) {
 
     const targetPlayer = participants[Math.floor(Math.random() * participants.length)];
     
-    // إنشاء الـ GIF الخاص بالعجلة وهي تلف وتهدي وتقف عند الشخص تماماً
     const gifBuffer = await generateRouletteWheelGif(participants, targetPlayer);
     const gifAttachment = new AttachmentBuilder(gifBuffer, { name: 'roulette_wheel.gif' });
 
@@ -663,7 +663,6 @@ async function runRouletteRound(channel, guildId, channelId, participants) {
     );
     rows.push(bottomRow);
 
-    // إرسال صورة العجلة المتحركة فوراً مع الأزرار ومنشن الشخص مباشرة عند توقف العجلة
     const wheelMessage = await channel.send({
         content: `<@!${targetPlayer.id}> , لديك **15 ثانية** لاختيار لاعب لطرده 🦵`,
         files: [gifAttachment],
