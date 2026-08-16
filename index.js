@@ -270,7 +270,7 @@ async function generateWinnerWheelImage(participants, targetUser) {
     return canvas.toBuffer('image/png');
 }
 
-// دالة الـ GIF: السهم يلف ويهدي ويقف نهائياً بدون تكرار إطلاقاً (Repeat = -1)
+// دالة الـ GIF: السهم يلف ويهدي ويقف نهائياً عند الفائز بدون تكرار إطلاقاً
 async function generateRouletteWheelGif(participants, targetPlayer) {
     const width = 600;
     const height = 600;
@@ -279,7 +279,7 @@ async function generateRouletteWheelGif(participants, targetPlayer) {
 
     const encoder = new GIFEncoder(width, height);
     encoder.start();
-    encoder.setRepeat(-1); // عدم تكرار الـ GIF نهائياً، يتوقف عند آخر إطار
+    encoder.setRepeat(-1); // عدم التكرار نهائياً (يتوقف عند الإطار الأخير ويقف تماماً)
     encoder.setDelay(60);
     encoder.setQuality(10);
     encoder.setTransparent(0x000000);
@@ -661,7 +661,7 @@ async function runRouletteRound(channel, guildId, channelId, participants) {
     );
     rows.push(bottomRow);
 
-    // إرسال العجلة مع الأزرار ومنشن الشخص فوراً بعد انتهاء الـ 30 ثانية بدون رسائل إضافية
+    // إرسال رسالة العجلة، رسالة الإقصاء، والأزرار دفعة واحدة فوراً
     const wheelMessage = await channel.send({
         content: `<@!${targetPlayer.id}> , لديك **15 ثانية** لاختيار لاعب لطرده 🦵`,
         files: [gifAttachment],
